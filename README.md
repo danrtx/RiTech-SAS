@@ -1,0 +1,64 @@
+# RiTech SAS
+
+Plataforma de cobertura (hedging) sobre el NASDAQ 100: backend NestJS (monolito modular) y app móvil Flutter.
+
+## Infraestructura local (PostgreSQL + Redis)
+
+El backend usa **PostgreSQL 16** para persistencia y **Redis 7** como caché de ticks y ventana móvil del ATR. La app Flutter no se conecta a estos servicios directamente: siempre pasa por el backend.
+
+### Requisitos
+
+- Docker Desktop abierto (incluye Docker Compose v2).
+
+### Levantar los servicios
+
+```bash
+cp .env.example .env        # en PowerShell: Copy-Item .env.example .env
+docker compose up -d
+docker compose ps           # ambos servicios deben aparecer como "healthy"
+```
+
+Para verificar todo de una vez en Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/verificar-infra.ps1
+```
+
+### Puertos y credenciales de desarrollo
+
+| Servicio   | Host        | Puerto | Usuario  | Contraseña   | Base de datos |
+|------------|-------------|--------|----------|--------------|---------------|
+| PostgreSQL | localhost   | 5433   | ritech   | ritech_dev   | ritech        |
+| Redis      | localhost   | 6379   | (n/a)    | ritech_dev   | db 0          |
+
+Estas credenciales son solo para desarrollo local. PostgreSQL usa el puerto 5433 en tu máquina (no el 5432 por defecto) para no chocar con otras instalaciones de PostgreSQL. Si aun así un puerto está ocupado (por ejemplo, tienes PostgreSQL instalado en Windows), cambia `POSTGRES_PORT` o `REDIS_PORT` en `.env` y actualiza también `DB_PORT`, `DATABASE_URL` y `REDIS_URL`.
+
+### Conexión desde el backend (NestJS)
+
+El backend lee la conexión desde variables de entorno definidas en `.env`:
+
+- PostgreSQL: `DATABASE_URL` o `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+- Redis: `REDIS_URL` o `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
+
+Nunca escribas credenciales directamente en el código. `.env` está en `.gitignore`; solo se versiona `.env.example`.
+
+### Conectarse manualmente
+
+```bash
+docker compose exec postgres psql -U ritech -d ritech
+docker compose exec redis redis-cli -a ritech_dev
+```
+
+### Persistencia
+
+- PostgreSQL guarda sus datos en el volumen `ritech_postgres_data`.
+- Redis guarda su caché en el volumen `ritech_redis_data` (AOF activado), así que sobrevive a reinicios.
+- `docker compose down` detiene los contenedores **sin borrar** los datos.
+
+### Limpieza
+
+```bash
+docker compose down         # detener (conserva datos)
+docker compose down -v      # detener y BORRAR todos los datos (base limpia)
+docker compose logs -f      # ver logs si algo falla
+```
