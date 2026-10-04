@@ -62,3 +62,35 @@ docker compose down         # detener (conserva datos)
 docker compose down -v      # detener y BORRAR todos los datos (base limpia)
 docker compose logs -f      # ver logs si algo falla
 ```
+
+## Integración continua (CI)
+
+Cada pull request hacia `main` (y cada push a `main`) ejecuta el workflow `.github/workflows/ci.yml` en GitHub Actions con dos trabajos:
+
+| Trabajo | Qué valida |
+|---------|------------|
+| **Backend (NestJS)** | ESLint, pruebas unitarias con Jest y que el proyecto compile |
+| **App móvil (Flutter)** | `flutter analyze` y pruebas unitarias con `flutter test` |
+
+Si cualquiera de los dos falla, el PR queda marcado en rojo y no debe unirse a `main`. Los resultados se ven en la pestaña **Checks** del PR o en **Actions** del repositorio.
+
+### Correr las mismas validaciones en local
+
+Antes de abrir un PR, ejecuta lo mismo que corre el CI:
+
+```bash
+# Backend
+cd backend
+npm ci
+npm run lint        # npm run lint:fix corrige lo automático
+npm test
+npm run build
+
+# App móvil
+cd ../frontend_mobile
+flutter pub get
+flutter analyze --no-fatal-infos
+flutter test
+```
+
+Las pruebas del backend van junto al código con el sufijo `.spec.ts` (por ejemplo `src/modules/health/health.controller.spec.ts`). Las de Flutter van en `frontend_mobile/test/` con el sufijo `_test.dart`.
