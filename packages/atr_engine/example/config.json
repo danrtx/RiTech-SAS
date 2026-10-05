@@ -1,0 +1,12 @@
+{
+  "symbols": ["AAPL", "MSFT"],
+  "period": 14,
+  "threshold": 1.5,
+  "baselineWindow": 20,
+  "maxGapMinutes": 5,
+  "cooldownMinutes": 0,
+  "epsilon": 1e-12,
+  "retentionMinutes": 1440,
+  "maxTicks": 100000,
+  "readTimeoutMs": 10000
+}
