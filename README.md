@@ -2,6 +2,10 @@
 
 Plataforma de cobertura (hedging) sobre el NASDAQ 100: backend NestJS (monolito modular) y app móvil Flutter.
 
+## Motor ATR de un minuto
+
+Disponible en [packages/atr_engine](packages/atr_engine/README.md): lógica Dart pura, caché en memoria, velas UTC, ATR Wilder, scheduler y alertas. Incluye tests, referencia externa pandas y ejemplo de configuración/uso. El [adaptador Flutter](packages/atr_engine_flutter/README.md) gestiona pausa y reanudación. La integración de estos paquetes con `backend/` y `frontend_mobile/` está pendiente; los ejemplos usan datos sintéticos.
+
 ## Infraestructura local (PostgreSQL + Redis)
 
 El backend usa **PostgreSQL 16** para persistencia y **Redis 7** como caché de ticks y ventana móvil del ATR. La app Flutter no se conecta a estos servicios directamente: siempre pasa por el backend.

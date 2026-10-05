@@ -1,0 +1,4 @@
+analyzer:
+  exclude:
+    - build/**
+include: ../atr_engine/analysis_options.yaml
