@@ -160,7 +160,7 @@ export class PriceAnalysisService implements TickConsumer {
         ruleId: state.rule.id,
         symbol: tick.symbol,
         feed: tick.feed,
-        simulated: tick.feed !== 'iex',
+        simulated: tick.feed === 'mock' || tick.feed === 'test',
         windowMs: state.rule.windowMs,
         status: result.status,
         evaluatedAtMs: nowMs,
@@ -199,7 +199,7 @@ export class PriceAnalysisService implements TickConsumer {
         symbol: tick.symbol,
         provider: tick.provider,
         feed: tick.feed,
-        simulated: tick.feed !== 'iex',
+        simulated: tick.feed === 'mock' || tick.feed === 'test',
         direction: region as 'up' | 'down',
         windowMs: state.rule.windowMs,
         thresholdPercent:

@@ -1,16 +1,16 @@
-import { MarketDataFeed } from '../market-data.config';
+import { MarketDataFeed, MarketDataProvider } from '../market-data.config';
 
 /** Contrato normalizado; la validación del mensaje entrante pertenece al adaptador. */
 export interface MarketTick {
   readonly schemaVersion: 1;
-  readonly provider: 'alpaca';
+  readonly provider: MarketDataProvider;
   readonly feed: MarketDataFeed;
   readonly symbol: string;
   readonly providerSymbol: string;
-  readonly kind: 'trade';
+  readonly kind: 'trade' | 'price';
   readonly price: number;
   readonly currency: 'USD';
-  /** Cantidad de esta operación, no volumen diario acumulado. */
+  /** Cantidad de la operación; 0 = no disponible en eventos price de Twelve Data. */
   readonly volume: number;
   readonly eventId: string;
   readonly exchange: string;

@@ -1,4 +1,4 @@
-import { MarketDataFeed } from './market-data.config';
+import { MarketDataFeed, MarketDataProvider } from './market-data.config';
 
 export type MarketDataConnectionState =
   | 'DISABLED'
@@ -15,6 +15,7 @@ export type ConnectionFailureReason =
   | 'connect_timeout'
   | 'auth_timeout'
   | 'subscribe_timeout'
+  | 'heartbeat_timeout'
   | 'transport_error'
   | 'send_failed'
   | 'http_upgrade_rejected'
@@ -47,7 +48,7 @@ export class MarketDataConnectionError extends Error {
 
 export interface MarketDataConnectionStatus {
   readonly state: MarketDataConnectionState;
-  readonly provider: 'alpaca';
+  readonly provider: MarketDataProvider;
   readonly feed: MarketDataFeed;
   readonly symbol: 'QQQ' | 'FAKEPACA';
   readonly lastError?: Readonly<ConnectionFailure>;

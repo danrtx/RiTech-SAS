@@ -10,11 +10,23 @@ import { PriceAnalysisService } from './analysis/price-analysis.service';
 import { TICK_CONSUMER } from './ports/tick-consumer.interface';
 import { MarketDataController } from './market-data.controller';
 import { HedgingModule } from '../hedging/hedging.module';
+import { TwelveDataAdapter } from './adapters/twelve-data.adapter';
+import { MARKET_DATA_ADAPTER } from './ports/market-data-adapter.interface';
 
 @Module({
   imports: [ConfigModule, TelemetryModule, HedgingModule],
   providers: [
     AlpacaAdapter,
+    TwelveDataAdapter,
+    {
+      provide: MARKET_DATA_ADAPTER,
+      inject: [MARKET_DATA_CONFIG, AlpacaAdapter, TwelveDataAdapter],
+      useFactory: (
+        config: MarketDataConfig,
+        alpaca: AlpacaAdapter,
+        twelve: TwelveDataAdapter,
+      ) => (config.provider === 'twelvedata' ? twelve : alpaca),
+    },
     MarketDataProcessor,
     PriceAnalysisService,
     { provide: TICK_CONSUMER, useExisting: PriceAnalysisService },
