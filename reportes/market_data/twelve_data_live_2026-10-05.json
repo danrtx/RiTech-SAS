@@ -1,0 +1,543 @@
+{
+  "startedAt": "2026-10-05T18:28:40.256Z",
+  "outcome": "NOT_READY",
+  "scope": "Real QQQ WebSocket, actual market-data/ATR modules, disposable Redis, HTTP and Socket.IO; no PostgreSQL or deployment",
+  "states": [
+    {
+      "at": "2026-10-05T18:28:40.352Z",
+      "state": "CONNECTING"
+    },
+    {
+      "at": "2026-10-05T18:28:40.966Z",
+      "state": "AUTHENTICATING"
+    },
+    {
+      "at": "2026-10-05T18:28:40.966Z",
+      "state": "SUBSCRIBING"
+    },
+    {
+      "at": "2026-10-05T18:28:41.165Z",
+      "state": "LIVE"
+    },
+    {
+      "at": "2026-10-05T18:29:56.247Z",
+      "state": "DEGRADED",
+      "reason": "connection_closed"
+    },
+    {
+      "at": "2026-10-05T18:29:56.350Z",
+      "state": "CONNECTING"
+    },
+    {
+      "at": "2026-10-05T18:29:56.982Z",
+      "state": "AUTHENTICATING"
+    },
+    {
+      "at": "2026-10-05T18:29:56.982Z",
+      "state": "SUBSCRIBING"
+    },
+    {
+      "at": "2026-10-05T18:29:57.176Z",
+      "state": "LIVE"
+    },
+    {
+      "at": "2026-10-05T18:31:11.271Z",
+      "state": "STOPPED"
+    }
+  ],
+  "prices": {
+    "received": 17,
+    "samples": [
+      {
+        "eventTimeMs": 1791224880000,
+        "receivedAtMs": 1791224924188,
+        "ageMs": 44188,
+        "price": 755.69
+      },
+      {
+        "eventTimeMs": 1791224880000,
+        "receivedAtMs": 1791224934156,
+        "ageMs": 54156,
+        "price": 755.63
+      },
+      {
+        "eventTimeMs": 1791224880000,
+        "receivedAtMs": 1791224939180,
+        "ageMs": 59180,
+        "price": 755.615
+      },
+      {
+        "eventTimeMs": 1791224940000,
+        "receivedAtMs": 1791224953107,
+        "ageMs": 13107,
+        "price": 755.65
+      },
+      {
+        "eventTimeMs": 1791224940000,
+        "receivedAtMs": 1791224960205,
+        "ageMs": 20205,
+        "price": 755.655
+      },
+      {
+        "eventTimeMs": 1791224940000,
+        "receivedAtMs": 1791224962097,
+        "ageMs": 22097,
+        "price": 755.64
+      },
+      {
+        "eventTimeMs": 1791224940000,
+        "receivedAtMs": 1791224964370,
+        "ageMs": 24370,
+        "price": 755.61
+      },
+      {
+        "eventTimeMs": 1791224940000,
+        "receivedAtMs": 1791224965085,
+        "ageMs": 25085,
+        "price": 755.585
+      },
+      {
+        "eventTimeMs": 1791224940000,
+        "receivedAtMs": 1791224973143,
+        "ageMs": 33143,
+        "price": 755.53
+      },
+      {
+        "eventTimeMs": 1791225000000,
+        "receivedAtMs": 1791225003115,
+        "ageMs": 3115,
+        "price": 755.56
+      },
+      {
+        "eventTimeMs": 1791225000000,
+        "receivedAtMs": 1791225017275,
+        "ageMs": 17275,
+        "price": 755.56
+      },
+      {
+        "eventTimeMs": 1791225000000,
+        "receivedAtMs": 1791225024154,
+        "ageMs": 24154,
+        "price": 755.59
+      },
+      {
+        "eventTimeMs": 1791225000000,
+        "receivedAtMs": 1791225031238,
+        "ageMs": 31238,
+        "price": 755.53
+      },
+      {
+        "eventTimeMs": 1791225000000,
+        "receivedAtMs": 1791225037264,
+        "ageMs": 37264,
+        "price": 755.455
+      },
+      {
+        "eventTimeMs": 1791225000000,
+        "receivedAtMs": 1791225040148,
+        "ageMs": 40148,
+        "price": 755.535
+      },
+      {
+        "eventTimeMs": 1791225000000,
+        "receivedAtMs": 1791225048202,
+        "ageMs": 48202,
+        "price": 755.545
+      },
+      {
+        "eventTimeMs": 1791225000000,
+        "receivedAtMs": 1791225049057,
+        "ageMs": 49057,
+        "price": 755.545
+      }
+    ]
+  },
+  "heartbeatReplies": 14,
+  "dashboard": {
+    "ticks": 0,
+    "updates": 0,
+    "alerts": 0,
+    "qualityEvents": 1,
+    "atrEvents": 4,
+    "alertSamples": []
+  },
+  "controlledDisconnect": {
+    "attempted": true,
+    "reconnectedMs": 930.6419579999929
+  },
+  "checks": {
+    "authenticatedAndSubscribed": true,
+    "receivedProviderPrices": true,
+    "deliveredFreshPrices": false,
+    "dashboardReceivedPrices": false,
+    "alertDelivered": false,
+    "ingestionLatencyUnder200ms": false,
+    "reconnectUnder2s": true,
+    "validPricesAfterReconnect": false
+  },
+  "limitations": [
+    "A short probe cannot validate sustained load, all failure modes, or complete ATR warm-up.",
+    "The rule uses a short window and a small threshold solely to exercise delivery; it is not an investment recommendation.",
+    "Age is measured against the local clock using the original provider timestamp; it includes timestamp precision and clock differences."
+  ],
+  "configuration": {
+    "provider": "twelvedata",
+    "feed": "realtime",
+    "symbol": "QQQ",
+    "maxTickAgeMs": 2000,
+    "futureToleranceMs": 100,
+    "heartbeatMs": 10000,
+    "heartbeatTimeoutMs": 10000
+  },
+  "initialStatus": {
+    "connection": {
+      "state": "LIVE",
+      "provider": "twelvedata",
+      "feed": "realtime",
+      "symbol": "QQQ"
+    },
+    "ingestion": {
+      "live": true,
+      "processing": "IDLE",
+      "queueDepth": 0,
+      "dedupEntries": 0,
+      "received": 0,
+      "valid": 0,
+      "delivered": 0,
+      "duplicates": 0,
+      "outOfOrder": 0,
+      "dropped": 0,
+      "controls": 0,
+      "consumerErrors": 0,
+      "receiptToConsumerLatencyMs": {
+        "count": 0,
+        "last": null,
+        "max": null,
+        "average": null,
+        "p95": null,
+        "sampleWindow": 0
+      },
+      "lastEventAgeAtDeliveryMs": null,
+      "rejected": {}
+    },
+    "recovery": {
+      "reconnects": 0,
+      "reconnectAttempts": 0,
+      "lastRecoveryDurationMs": null,
+      "reconnectScheduled": false,
+      "reconnecting": false,
+      "continuity": {
+        "state": "LIVE",
+        "bufferDepth": 0,
+        "recoveredThroughMs": 0,
+        "recoveries": 1,
+        "failures": 0,
+        "historicalTicks": 0,
+        "lastDurationMs": 17.87237499999992
+      }
+    },
+    "analysis": {
+      "points": 0,
+      "capacity": 100000,
+      "retentionMs": 3600000,
+      "evictedByCapacity": 0,
+      "marketReference": {
+        "targetIndex": "NDX",
+        "targetName": "NASDAQ 100",
+        "sourceSymbol": "QQQ",
+        "provider": "twelvedata",
+        "feed": "realtime",
+        "instrumentType": "ETF_PROXY",
+        "simulated": false,
+        "matchesRequiredIndex": false
+      },
+      "fresh": false,
+      "alertsEmitted": 0,
+      "recovering": false,
+      "alertsSuppressed": 0,
+      "rules": []
+    }
+  },
+  "rule": {
+    "windowMs": 5000,
+    "upPercent": 1e-06,
+    "downPercent": 1e-06,
+    "thresholdBasis": "INVESTMENT",
+    "investedAmount": 10000,
+    "cooldownMs": 0
+  },
+  "beforeDisconnectStatus": {
+    "connection": {
+      "state": "LIVE",
+      "provider": "twelvedata",
+      "feed": "realtime",
+      "symbol": "QQQ"
+    },
+    "ingestion": {
+      "live": true,
+      "processing": "IDLE",
+      "queueDepth": 0,
+      "dedupEntries": 0,
+      "received": 9,
+      "valid": 0,
+      "delivered": 0,
+      "duplicates": 0,
+      "outOfOrder": 0,
+      "dropped": 0,
+      "controls": 0,
+      "consumerErrors": 0,
+      "receiptToConsumerLatencyMs": {
+        "count": 0,
+        "last": null,
+        "max": null,
+        "average": null,
+        "p95": null,
+        "sampleWindow": 0
+      },
+      "lastEventAgeAtDeliveryMs": null,
+      "rejected": {
+        "stale": 9
+      }
+    },
+    "recovery": {
+      "reconnects": 0,
+      "reconnectAttempts": 0,
+      "lastRecoveryDurationMs": null,
+      "reconnectScheduled": false,
+      "reconnecting": false,
+      "continuity": {
+        "state": "LIVE",
+        "bufferDepth": 0,
+        "recoveredThroughMs": 0,
+        "recoveries": 1,
+        "failures": 0,
+        "historicalTicks": 0,
+        "lastDurationMs": 17.87237499999992
+      }
+    },
+    "analysis": {
+      "points": 0,
+      "capacity": 100000,
+      "retentionMs": 3600000,
+      "evictedByCapacity": 0,
+      "marketReference": {
+        "targetIndex": "NDX",
+        "targetName": "NASDAQ 100",
+        "sourceSymbol": "QQQ",
+        "provider": "twelvedata",
+        "feed": "realtime",
+        "instrumentType": "ETF_PROXY",
+        "simulated": false,
+        "matchesRequiredIndex": false
+      },
+      "fresh": false,
+      "alertsEmitted": 0,
+      "recovering": false,
+      "alertsSuppressed": 0,
+      "rules": [
+        {
+          "id": "live-qa",
+          "referenceMode": "WINDOW",
+          "windowMs": 5000,
+          "upPercent": 1e-06,
+          "downPercent": 1e-06,
+          "cooldownMs": 0,
+          "enabled": true,
+          "thresholdBasis": "INVESTMENT",
+          "investedAmount": 10000,
+          "marketReference": {
+            "targetIndex": "NDX",
+            "targetName": "NASDAQ 100",
+            "sourceSymbol": "QQQ",
+            "provider": "twelvedata",
+            "feed": "realtime",
+            "instrumentType": "ETF_PROXY",
+            "simulated": false,
+            "matchesRequiredIndex": false
+          },
+          "analysis": {
+            "status": "WARMING_UP"
+          }
+        }
+      ]
+    }
+  },
+  "finalStatus": {
+    "connection": {
+      "state": "LIVE",
+      "provider": "twelvedata",
+      "feed": "realtime",
+      "symbol": "QQQ"
+    },
+    "ingestion": {
+      "live": true,
+      "processing": "IDLE",
+      "queueDepth": 0,
+      "dedupEntries": 0,
+      "received": 17,
+      "valid": 0,
+      "delivered": 0,
+      "duplicates": 0,
+      "outOfOrder": 0,
+      "dropped": 0,
+      "controls": 0,
+      "consumerErrors": 0,
+      "receiptToConsumerLatencyMs": {
+        "count": 0,
+        "last": null,
+        "max": null,
+        "average": null,
+        "p95": null,
+        "sampleWindow": 0
+      },
+      "lastEventAgeAtDeliveryMs": null,
+      "rejected": {
+        "stale": 17
+      }
+    },
+    "recovery": {
+      "reconnects": 1,
+      "reconnectAttempts": 1,
+      "lastRecoveryDurationMs": 927.8896669999958,
+      "reconnectScheduled": false,
+      "reconnecting": false,
+      "continuity": {
+        "state": "LIVE",
+        "bufferDepth": 0,
+        "recoveredThroughMs": 0,
+        "recoveries": 2,
+        "failures": 0,
+        "historicalTicks": 0,
+        "lastDurationMs": 936.3381249999948
+      }
+    },
+    "analysis": {
+      "points": 0,
+      "capacity": 100000,
+      "retentionMs": 3600000,
+      "evictedByCapacity": 0,
+      "marketReference": {
+        "targetIndex": "NDX",
+        "targetName": "NASDAQ 100",
+        "sourceSymbol": "QQQ",
+        "provider": "twelvedata",
+        "feed": "realtime",
+        "instrumentType": "ETF_PROXY",
+        "simulated": false,
+        "matchesRequiredIndex": false
+      },
+      "fresh": false,
+      "alertsEmitted": 0,
+      "recovering": false,
+      "alertsSuppressed": 0,
+      "rules": [
+        {
+          "id": "live-qa",
+          "referenceMode": "WINDOW",
+          "windowMs": 5000,
+          "upPercent": 1e-06,
+          "downPercent": 1e-06,
+          "cooldownMs": 0,
+          "enabled": true,
+          "thresholdBasis": "INVESTMENT",
+          "investedAmount": 10000,
+          "marketReference": {
+            "targetIndex": "NDX",
+            "targetName": "NASDAQ 100",
+            "sourceSymbol": "QQQ",
+            "provider": "twelvedata",
+            "feed": "realtime",
+            "instrumentType": "ETF_PROXY",
+            "simulated": false,
+            "matchesRequiredIndex": false
+          },
+          "analysis": {
+            "status": "WARMING_UP"
+          }
+        }
+      ]
+    }
+  },
+  "history": {
+    "symbol": "QQQ",
+    "marketReference": {
+      "targetIndex": "NDX",
+      "targetName": "NASDAQ 100",
+      "sourceSymbol": "QQQ",
+      "provider": "twelvedata",
+      "feed": "realtime",
+      "instrumentType": "ETF_PROXY",
+      "simulated": false,
+      "matchesRequiredIndex": false
+    },
+    "feed": "realtime",
+    "points": 0,
+    "capacity": 100000,
+    "retentionMs": 3600000,
+    "evictedByCapacity": 0,
+    "samples": []
+  },
+  "atr": {
+    "results": [
+      {
+        "symbol": "QQQ",
+        "minute": 1791225060000,
+        "emittedAt": 1791225060002,
+        "atr": null,
+        "baseline": null,
+        "alert": false,
+        "status": "insufficientData"
+      }
+    ],
+    "metrics": {
+      "cycles": 3,
+      "skipped": 1,
+      "failures": 0,
+      "resets": 3,
+      "alerts": 0,
+      "lastDurationMs": 13.320166999998037
+    },
+    "ingestion": {
+      "recovering": false
+    },
+    "ticks": {
+      "accepted": 0,
+      "discarded": {}
+    }
+  },
+  "persistedTicks": 0,
+  "endedAt": "2026-10-05T18:31:11.547Z",
+  "eventAgeMs": {
+    "count": 17,
+    "min": 3115,
+    "max": 59180,
+    "average": 32116.70588235294,
+    "p95": 59180
+  },
+  "eventAgeAfterReconnectMs": {
+    "count": 8,
+    "min": 3115,
+    "max": 49057,
+    "average": 31306.625,
+    "p95": 49057
+  },
+  "receiptToDashboardMs": {
+    "count": 0,
+    "min": null,
+    "max": null,
+    "average": null,
+    "p95": null
+  },
+  "observations": {
+    "sampledEventTimesAlignedToMinute": true,
+    "interpretation": "Todos los timestamps de las 17 observaciones están alineados al minuto. La antigüedad calculada no permite distinguir retraso de publicación y precisión efectiva del timestamp; no se sustituye por la hora local.",
+    "latencyAcceptance": "No evaluable: ningún tick llegó al consumidor; el check false significa que no se acreditó el criterio, no que se midió una latencia interna superior a 200 ms.",
+    "clockCrossCheck": {
+      "localUtc": "2026-10-05T18:28:51.703Z",
+      "serverDateHeader": "Mon, 05 Oct 2026 18:28:51 GMT",
+      "roundTripMs": 336,
+      "serverMinusLocalMidpointMs": -535,
+      "method": "HEAD https://api.twelvedata.com/ sin credenciales; comprobación aproximada, no sincronización NTP"
+    }
+  }
+}
