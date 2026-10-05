@@ -1,0 +1,14 @@
+name: atr_engine_flutter
+description: Flutter lifecycle integration for atr_engine.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  atr_engine:
+    path: ../atr_engine
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

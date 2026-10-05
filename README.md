@@ -2,6 +2,10 @@
 
 Plataforma de cobertura (hedging) sobre el NASDAQ 100: backend NestJS (monolito modular) y app móvil Flutter.
 
+## Motor ATR de un minuto
+
+Disponible en [packages/atr_engine](packages/atr_engine/README.md): lógica Dart pura, caché en memoria, velas UTC, ATR Wilder, scheduler y alertas. Incluye tests, referencia externa pandas y ejemplo de configuración/uso. El [adaptador Flutter](packages/atr_engine_flutter/README.md) gestiona pausa y reanudación. La integración de estos paquetes con `backend/` y `frontend_mobile/` está pendiente; los ejemplos usan datos sintéticos.
+
 ## Infraestructura local (PostgreSQL + Redis)
 
 El backend usa **PostgreSQL 16** para persistencia y **Redis 7** como caché de ticks y ventana móvil del ATR. La app Flutter no se conecta a estos servicios directamente: siempre pasa por el backend.
@@ -62,3 +66,35 @@ docker compose down         # detener (conserva datos)
 docker compose down -v      # detener y BORRAR todos los datos (base limpia)
 docker compose logs -f      # ver logs si algo falla
 ```
+
+## Integración continua (CI)
+
+Cada pull request hacia `main` (y cada push a `main`) ejecuta el workflow `.github/workflows/ci.yml` en GitHub Actions con dos trabajos:
+
+| Trabajo | Qué valida |
+|---------|------------|
+| **Backend (NestJS)** | ESLint, pruebas unitarias con Jest y que el proyecto compile |
+| **App móvil (Flutter)** | `flutter analyze` y pruebas unitarias con `flutter test` |
+
+Si cualquiera de los dos falla, el PR queda marcado en rojo y no debe unirse a `main`. Los resultados se ven en la pestaña **Checks** del PR o en **Actions** del repositorio.
+
+### Correr las mismas validaciones en local
+
+Antes de abrir un PR, ejecuta lo mismo que corre el CI:
+
+```bash
+# Backend
+cd backend
+npm ci
+npm run lint        # npm run lint:fix corrige lo automático
+npm test
+npm run build
+
+# App móvil
+cd ../frontend_mobile
+flutter pub get
+flutter analyze --no-fatal-infos
+flutter test
+```
+
+Las pruebas del backend van junto al código con el sufijo `.spec.ts` (por ejemplo `src/modules/health/health.controller.spec.ts`). Las de Flutter van en `frontend_mobile/test/` con el sufijo `_test.dart`.
