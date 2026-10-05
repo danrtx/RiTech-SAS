@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
-import { TelemetryModule } from '../telemetry/telemetry.module';
+import { Module } from "@nestjs/common";
+import { TelemetryModule } from "../telemetry/telemetry.module";
+import { MockFeedService } from "./mock-feed.service";
 
 @Module({
   imports: [TelemetryModule],
-  providers: [],
+  providers: [MockFeedService],
   exports: [],
 })
 export class MarketDataModule {}

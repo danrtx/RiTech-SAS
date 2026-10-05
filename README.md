@@ -4,7 +4,9 @@ Plataforma de cobertura (hedging) sobre el NASDAQ 100: backend NestJS (monolito 
 
 ## Motor ATR de un minuto
 
-Disponible en [packages/atr_engine](packages/atr_engine/README.md): lógica Dart pura, caché en memoria, velas UTC, ATR Wilder, scheduler y alertas. Incluye tests, referencia externa pandas y ejemplo de configuración/uso. El [adaptador Flutter](packages/atr_engine_flutter/README.md) gestiona pausa y reanudación. La integración de estos paquetes con `backend/` y `frontend_mobile/` está pendiente; los ejemplos usan datos sintéticos.
+El [motor operativo NestJS](backend/README.md) lee ticks de Redis, construye velas UTC, calcula ATR Wilder y publica resultados/alertas por Socket.IO y `GET /atr`. Flutter consume estos eventos y muestra ATR/baseline. Incluye pruebas con Redis real, proveedor simulado, reconexión y referencia pandas. El conector del proveedor de mercado real sigue pendiente de integración por el equipo.
+
+Se conserva [packages/atr_engine](packages/atr_engine/README.md) como biblioteca Dart independiente y referencia de pruebas; su [adaptador Flutter](packages/atr_engine_flutter/README.md) es opcional. El dashboard operativo usa el ATR del backend.
 
 ## Infraestructura local (PostgreSQL + Redis)
 
@@ -69,12 +71,13 @@ docker compose logs -f      # ver logs si algo falla
 
 ## Integración continua (CI)
 
-Cada pull request hacia `main` (y cada push a `main`) ejecuta el workflow `.github/workflows/ci.yml` en GitHub Actions con dos trabajos:
+Cada pull request hacia `main` (y cada push a `main`) ejecuta el workflow `.github/workflows/ci.yml` en GitHub Actions con tres trabajos:
 
 | Trabajo | Qué valida |
 |---------|------------|
-| **Backend (NestJS)** | ESLint, pruebas unitarias con Jest y que el proyecto compile |
+| **Backend (NestJS)** | ESLint, Jest, compilación y pruebas con Redis real/reconexión simulada |
 | **App móvil (Flutter)** | `flutter analyze` y pruebas unitarias con `flutter test` |
+| **Paquetes ATR** | Análisis, pruebas y formato del núcleo Dart y su adaptador Flutter |
 
 Si cualquiera de los dos falla, el PR queda marcado en rojo y no debe unirse a `main`. Los resultados se ven en la pestaña **Checks** del PR o en **Actions** del repositorio.
 

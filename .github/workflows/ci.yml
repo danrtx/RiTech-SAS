@@ -14,6 +14,13 @@ jobs:
   backend:
     name: Backend (NestJS) - lint, tests y build
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
     defaults:
       run:
         working-directory: backend
@@ -38,6 +45,22 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Redis real, carga y reconexion simulada
+        run: npm run test:integration
+        env:
+          REDIS_TEST_HOST: 127.0.0.1
+          REDIS_TEST_PORT: '6379'
+          REDIS_TEST_PASSWORD: ''
+          QA_REPORT_PATH: ${{ runner.temp }}/streaming_metrics.json
+
+      - name: Evidencia de streaming
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: streaming-metrics
+          path: ${{ runner.temp }}/streaming_metrics.json
+          if-no-files-found: warn
+
   mobile:
     name: App movil (Flutter) - analyze y tests
     runs-on: ubuntu-latest
@@ -60,3 +83,27 @@ jobs:
 
       - name: Pruebas unitarias
         run: flutter test
+
+  atr-packages:
+    name: Paquetes ATR Dart y adaptador Flutter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Core Dart
+        working-directory: packages/atr_engine
+        run: |
+          dart pub get
+          dart analyze
+          dart test
+          dart format --output=none --set-exit-if-changed .
+      - name: Adaptador Flutter
+        working-directory: packages/atr_engine_flutter
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+          dart format --output=none --set-exit-if-changed .
