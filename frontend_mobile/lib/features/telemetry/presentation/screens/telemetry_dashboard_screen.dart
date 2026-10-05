@@ -94,10 +94,24 @@ class TelemetryDashboardScreen extends ConsumerWidget {
                         ),
                         Text(
                           'Timestamp: ${telemetryState.lastTick?['timestamp'] ?? '-'}',
-                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                          style:
+                              const TextStyle(color: Colors.grey, fontSize: 12),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'ATR 1 min: ${telemetryState.lastAtr?['atr'] ?? 'Esperando velas cerradas'}',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    Text(
+                      'Línea base: ${telemetryState.lastAtr?['baseline'] ?? '-'} · '
+                      'Estado: ${telemetryState.lastAtr?['status'] ?? 'sin datos'}',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                    if (telemetryState.lastAtr?['alert'] == true)
+                      const Text('Aumento de volatilidad',
+                          style: TextStyle(color: Colors.orange)),
                   ],
                 ),
               ),
@@ -130,7 +144,7 @@ class TelemetryDashboardScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color),
       ),
@@ -145,7 +159,8 @@ class TelemetryDashboardScreen extends ConsumerWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11),
+            style: TextStyle(
+                color: color, fontWeight: FontWeight.bold, fontSize: 11),
           ),
         ],
       ),

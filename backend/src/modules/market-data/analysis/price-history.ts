@@ -1,4 +1,5 @@
 import { MarketTick } from '../dto/market-tick.dto';
+import { marketIdentity } from '../market-history.client';
 
 /** Buffer circular: inserción O(1), referencias por búsqueda binaria y memoria acotada. */
 export class PriceHistory {
@@ -6,6 +7,7 @@ export class PriceHistory {
   private head = 0;
   private count = 0;
   private evicted = 0;
+  private readonly ids = new Set<string>();
 
   constructor(
     private readonly capacity: number,
@@ -20,12 +22,15 @@ export class PriceHistory {
   }
 
   private removeFirst(): void {
+    this.ids.delete(marketIdentity(this.points[this.head]!));
     this.points[this.head] = undefined;
     this.head = (this.head + 1) % this.capacity;
     this.count--;
   }
 
   append(tick: MarketTick): void {
+    const identity = marketIdentity(tick);
+    if (this.ids.has(identity)) return;
     if (this.count && tick.eventTimeMs < this.at(this.count - 1).eventTimeMs) {
       throw new Error('history_out_of_order');
     }
@@ -37,6 +42,7 @@ export class PriceHistory {
     }
     this.points[(this.head + this.count) % this.capacity] = tick;
     this.count++;
+    this.ids.add(identity);
   }
 
   reference(targetMs: number): MarketTick | undefined {
@@ -82,6 +88,7 @@ export class PriceHistory {
   }
 
   clear(): void {
+    this.ids.clear();
     this.points.fill(undefined);
     this.head = 0;
     this.count = 0;

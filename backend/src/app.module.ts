@@ -7,6 +7,7 @@ import { TelemetryModule } from './modules/telemetry/telemetry.module';
 import { MarketDataModule } from './modules/market-data/market-data.module';
 import { HedgingModule } from './modules/hedging/hedging.module';
 import { HealthModule } from './modules/health/health.module';
+import { AtrModule } from './modules/atr/atr.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { HealthModule } from './modules/health/health.module';
     MarketDataModule,
     HedgingModule,
     HealthModule,
+    AtrModule,
   ],
   controllers: [],
   providers: [],

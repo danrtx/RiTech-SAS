@@ -7,21 +7,23 @@ void main() {
   group('AppConfig', () {
     test('usa el backend local por defecto', () {
       expect(AppConfig.apiBaseUrl, 'http://localhost:3000');
-      expect(AppConfig.wsBaseUrl, 'ws://localhost:3000/telemetry');
+      expect(AppConfig.wsBaseUrl, 'http://localhost:3000/telemetry');
     });
   });
 
   group('TelemetryState', () {
-    test('inicia desconectado con NDX como simbolo activo', () {
-      const state = TelemetryState(connectionStatus: WebSocketStatus.disconnected);
+    test('inicia desconectado con QQQ como simbolo activo', () {
+      const state =
+          TelemetryState(connectionStatus: WebSocketStatus.disconnected);
 
       expect(state.connectionStatus, WebSocketStatus.disconnected);
-      expect(state.activeSymbol, 'NDX');
+      expect(state.activeSymbol, 'QQQ');
       expect(state.lastTick, isNull);
     });
 
     test('copyWith solo cambia los campos indicados', () {
-      const state = TelemetryState(connectionStatus: WebSocketStatus.disconnected);
+      const state =
+          TelemetryState(connectionStatus: WebSocketStatus.disconnected);
       final updated = state.copyWith(
         connectionStatus: WebSocketStatus.connected,
         lastTick: {'price': 100.5},
@@ -29,7 +31,7 @@ void main() {
 
       expect(updated.connectionStatus, WebSocketStatus.connected);
       expect(updated.lastTick, {'price': 100.5});
-      expect(updated.activeSymbol, 'NDX');
+      expect(updated.activeSymbol, 'QQQ');
     });
   });
 

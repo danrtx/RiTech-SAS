@@ -1,78 +1,115 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../config/app_config.dart';
 
 enum WebSocketStatus { disconnected, connecting, connected }
 
+abstract interface class TelemetryTransport {
+  void on(String event, void Function(Object?) callback);
+  void connect();
+  void emit(String event, Map<String, Object?> data);
+  void dispose();
+}
+
+class SocketIoTransport implements TelemetryTransport {
+  SocketIoTransport(String url)
+      : _socket = io.io(
+            url,
+            io.OptionBuilder()
+                .setTransports(['websocket'])
+                .disableAutoConnect()
+                .enableForceNew()
+                .enableReconnection()
+                .setReconnectionDelay(100)
+                .setReconnectionDelayMax(1000)
+                .build());
+  final io.Socket _socket;
+  @override
+  void on(String event, void Function(Object?) callback) =>
+      _socket.on(event, callback);
+  @override
+  void connect() => _socket.connect();
+  @override
+  void emit(String event, Map<String, Object?> data) =>
+      _socket.emit(event, data);
+  @override
+  void dispose() => _socket.dispose();
+}
+
 class TelemetryWebSocketClient {
-  WebSocketChannel? _channel;
-  final StreamController<Map<String, dynamic>> _messagesController =
-      StreamController<Map<String, dynamic>>.broadcast();
-
-  final StreamController<WebSocketStatus> _statusController =
-      StreamController<WebSocketStatus>.broadcast();
-
-  Stream<Map<String, dynamic>> get messagesStream => _messagesController.stream;
-  Stream<WebSocketStatus> get statusStream => _statusController.stream;
-
+  TelemetryWebSocketClient({TelemetryTransport? transport})
+      : _transport = transport ?? SocketIoTransport(AppConfig.wsBaseUrl) {
+    _transport.on('connect', (_) {
+      if (_disposed) return;
+      _updateStatus(WebSocketStatus.connected);
+      if (_symbol != null) {
+        _transport.emit('subscribe_symbol', {'symbol': _symbol});
+      }
+    });
+    _transport.on(
+        'disconnect', (_) => _updateStatus(WebSocketStatus.disconnected));
+    _transport.on(
+        'connect_error', (_) => _updateStatus(WebSocketStatus.disconnected));
+    _transport.on(
+        'telemetry_tick', (data) => _deliver(data, _messagesController));
+    _transport.on('atr_result', (data) => _deliver(data, _atrController));
+  }
+  final TelemetryTransport _transport;
+  final _messagesController =
+      StreamController<Map<String, Object?>>.broadcast();
+  final _atrController = StreamController<Map<String, Object?>>.broadcast();
+  final _statusController = StreamController<WebSocketStatus>.broadcast();
+  bool _disposed = false;
+  String? _symbol;
   WebSocketStatus _currentStatus = WebSocketStatus.disconnected;
+  Stream<Map<String, Object?>> get messagesStream => _messagesController.stream;
+  Stream<Map<String, Object?>> get atrStream => _atrController.stream;
+  Stream<WebSocketStatus> get statusStream => _statusController.stream;
   WebSocketStatus get status => _currentStatus;
 
-  void connect() {
-    if (_currentStatus == WebSocketStatus.connected) return;
-
-    _updateStatus(WebSocketStatus.connecting);
-
-    try {
-      final uri = Uri.parse(AppConfig.wsBaseUrl);
-      _channel = WebSocketChannel.connect(uri);
-      _updateStatus(WebSocketStatus.connected);
-
-      _channel!.stream.listen(
-        (data) {
-          try {
-            final decoded = jsonDecode(data as String) as Map<String, dynamic>;
-            _messagesController.add(decoded);
-          } catch (e) {
-            // Error decoding message payload
-          }
-        },
-        onError: (error) {
-          _handleDisconnect();
-        },
-        onDone: () {
-          _handleDisconnect();
-        },
-      );
-    } catch (e) {
-      _handleDisconnect();
+  void _deliver(
+      Object? data, StreamController<Map<String, Object?>> controller) {
+    if (_disposed || data is! Map || data.keys.any((key) => key is! String)) {
+      return;
     }
+    final message = Map<String, Object?>.from(data);
+    if (message['symbol'] != _symbol) return;
+    controller.add(message);
+  }
+
+  void connect() {
+    if (_disposed || _currentStatus != WebSocketStatus.disconnected) return;
+    _updateStatus(WebSocketStatus.connecting);
+    _transport.connect();
   }
 
   void subscribeSymbol(String symbol) {
-    if (_currentStatus != WebSocketStatus.connected) return;
-    final payload = jsonEncode({
-      'event': 'subscribe_symbol',
-      'data': {'symbol': symbol.toUpperCase()},
-    });
-    _channel?.sink.add(payload);
+    if (_disposed) return;
+    final next = symbol.toUpperCase();
+    if (!RegExp(r'^[A-Z0-9._-]{1,32}$').hasMatch(next)) return;
+    if (_symbol == next) return;
+    if (_currentStatus == WebSocketStatus.connected && _symbol != null) {
+      _transport.emit('unsubscribe_symbol', {'symbol': _symbol});
+    }
+    _symbol = next;
+    if (_currentStatus == WebSocketStatus.connected) {
+      _transport.emit('subscribe_symbol', {'symbol': next});
+    }
   }
 
-  void _handleDisconnect() {
-    _updateStatus(WebSocketStatus.disconnected);
-    _channel?.sink.close();
-    _channel = null;
-  }
-
-  void _updateStatus(WebSocketStatus newStatus) {
-    _currentStatus = newStatus;
-    _statusController.add(newStatus);
+  void _updateStatus(WebSocketStatus status) {
+    if (_disposed || _currentStatus == status) return;
+    _currentStatus = status;
+    _statusController.add(status);
   }
 
   void dispose() {
-    _handleDisconnect();
-    _messagesController.close();
-    _statusController.close();
+    if (_disposed) return;
+    _disposed = true;
+    _currentStatus = WebSocketStatus.disconnected;
+    _transport.dispose();
+    unawaited(_messagesController.close());
+    unawaited(_atrController.close());
+    unawaited(_statusController.close());
   }
 }

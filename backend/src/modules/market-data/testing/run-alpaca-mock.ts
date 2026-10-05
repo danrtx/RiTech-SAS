@@ -7,7 +7,8 @@ async function main(): Promise<void> {
   const server = new AlpacaMockServer({ port: Number(rawPort) });
   const url = await server.start();
   console.log(`Mock Alpaca iniciado: ${url}; símbolo QQQ; datos sintéticos`);
-  let id = 0;
+  // A new local mock process must not reuse earlier IDs on the same UTC date.
+  let id = Date.now() * 1000;
   const timer = setInterval(() => {
     id++;
     server.publish([
