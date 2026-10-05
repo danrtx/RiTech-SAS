@@ -10,7 +10,7 @@ export function describeMarketReference(config: MarketDataConfig) {
     feed: config.feed,
     instrumentType:
       config.symbol === 'QQQ' ? ('ETF_PROXY' as const) : ('TEST' as const),
-    simulated: config.feed !== 'iex',
+    simulated: config.feed === 'mock' || config.feed === 'test',
     matchesRequiredIndex: false,
   };
 }

@@ -4,7 +4,7 @@ import { createTradeFixture } from '../testing/alpaca.fixtures';
 
 describe('Adaptador Alpaca', () => {
   const adapter = new AlpacaAdapter(
-    parseMarketDataConfig({ MARKET_DATA_FEED: 'mock' }),
+    parseMarketDataConfig({ MARKET_DATA_PROVIDER: 'alpaca', MARKET_DATA_FEED: 'mock' }),
   );
   const wire = createTradeFixture();
   const time = Date.parse(wire.t);

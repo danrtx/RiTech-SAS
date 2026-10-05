@@ -187,7 +187,7 @@ export class PriceAnalysisService implements TickConsumer {
         ruleId: state.rule.id,
         symbol: tick.symbol,
         feed: tick.feed,
-        simulated: tick.feed !== 'iex',
+        simulated: tick.feed === 'mock' || tick.feed === 'test',
         windowMs: state.rule.windowMs,
         referenceMode: state.rule.referenceMode ?? 'WINDOW',
         status: result.status,
@@ -230,7 +230,7 @@ export class PriceAnalysisService implements TickConsumer {
         symbol: tick.symbol,
         provider: tick.provider,
         feed: tick.feed,
-        simulated: tick.feed !== 'iex',
+        simulated: tick.feed === 'mock' || tick.feed === 'test',
         direction: region as 'up' | 'down',
         windowMs: state.rule.windowMs,
         referenceMode: state.rule.referenceMode ?? 'WINDOW',
@@ -267,7 +267,11 @@ export class PriceAnalysisService implements TickConsumer {
       occurredAtMs: Date.now(),
     });
   }
-  suspend(reason: TickInvalidationReason): void {
+  suspend(reason: TickInvalidationReason, discardWindow = false): void {
+    if (discardWindow) {
+      this.history.clear();
+      for (const state of this.rules.values()) state.region = 'neutral';
+    }
     this.recovering = true;
     this.lastInvalidation = reason;
     this.gateway.broadcastMarketDataQuality({

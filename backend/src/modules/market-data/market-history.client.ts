@@ -34,6 +34,10 @@ export class MarketHistoryClient {
     endMs: number,
     signal: AbortSignal,
   ): Promise<MarketTick[]> {
+    // OHLC bars cannot replay the individual observations of the price stream.
+    // Never send Twelve Data credentials to the Alpaca history endpoint.
+    if (this.config.provider === 'twelvedata')
+      throw new Error('history_tick_replay_unavailable');
     if (this.config.feed === 'test')
       throw new Error('history_test_feed_unavailable');
     if (endMs < startMs || endMs - startMs > this.config.recoveryMaxGapMs)

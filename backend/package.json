@@ -22,7 +22,8 @@
     "smoke:local": "ts-node scripts/smoke-local.ts",
     "qa:epic01": "ts-node scripts/qa-epic01.ts",
     "market-data:mock": "ts-node src/modules/market-data/testing/run-alpaca-mock.ts",
-    "market-data:probe": "ts-node src/modules/market-data/testing/probe-market-data.ts"
+    "market-data:probe": "ts-node src/modules/market-data/testing/probe-market-data.ts",
+    "market-data:mock:twelve": "ts-node src/modules/market-data/testing/run-twelve-data-mock.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

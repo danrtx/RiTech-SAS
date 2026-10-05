@@ -23,6 +23,13 @@ import { parseMarketDataConfig } from "../modules/market-data/market-data.config
 import { PriceAnalysisService } from "../modules/market-data/analysis/price-analysis.service";
 import { normalizedTick } from "../modules/market-data/testing/market-tick.fixture";
 
+import { TwelveDataAdapter } from '../modules/market-data/adapters/twelve-data.adapter';
+import { AlpacaAdapter } from '../modules/market-data/adapters/alpaca.adapter';
+import { MarketHistoryClient } from '../modules/market-data/market-history.client';
+import { MarketRecoveryService } from '../modules/market-data/market-recovery.service';
+import { MarketDataProcessor } from '../modules/market-data/market-data.processor';
+import { InvestmentAnalysisService } from '../modules/hedging/investment-analysis.service';
+
 const integration =
   process.env.RUN_REDIS_TESTS === "1" ? describe : describe.skip;
 const start = Date.UTC(2026, 9, 4, 12);
@@ -73,6 +80,63 @@ integration("real Redis and WebSocket integration", () => {
       await cache.getClient().del(...cache.keys("NDX"), ...cache.keys("QQQ"));
     cache?.onModuleDestroy();
     jest.restoreAllMocks();
+  });
+  it('preserves Twelve Data observation order in Redis and restarts ATR coverage after a gap', async () => {
+    current = start;
+    jest.spyOn(Date, 'now').mockImplementation(() => current);
+    const marketConfig = parseMarketDataConfig({
+      MARKET_DATA_ENABLED: 'true', MARKET_DATA_PROVIDER: 'twelvedata', MARKET_DATA_FEED: 'mock',
+    });
+    const output = { broadcastMarketTick: jest.fn(), broadcastInvestmentUpdate: jest.fn(),
+      broadcastPriceAlert: jest.fn(), broadcastMarketDataQuality: jest.fn(), broadcastAtr: jest.fn() };
+    const engine = new AtrService(config, cache, clock, output as unknown as TelemetryGateway, ingestion);
+    const analysis = new PriceAnalysisService(marketConfig, output as unknown as TelemetryGateway, new InvestmentAnalysisService());
+    const consumer = new MarketAtrConsumer(marketConfig, config, cache, engine, analysis, ingestion, clock);
+    consumer.onModuleInit();
+    const processor = new MarketDataProcessor(marketConfig, new TwelveDataAdapter(marketConfig), consumer);
+    const history = new MarketHistoryClient(marketConfig, new AlpacaAdapter(marketConfig));
+    const query = jest.spyOn(history, 'fetch');
+    const recovery = new MarketRecoveryService(marketConfig, history, processor, consumer, cache,
+      analysis, engine, ingestion, new AlpacaAdapter(marketConfig));
+    const deliver = async (price: number) => {
+      const delivered = processor.getStatus().delivered;
+      recovery.accept({ messages: [{ T: 'price', event: 'price', symbol: 'QQQ', currency: 'USD',
+        exchange: 'NASDAQ', price, timestamp: current / 1000 }],
+        receivedAtMs: current, receivedAtMonotonicMs: performance.now() });
+      await waitUntil(() => processor.getStatus().delivered === delivered + 1);
+    };
+    try {
+      recovery.live();
+      await waitUntil(() => recovery.getStatus().state === 'LIVE');
+      current = start + MINUTE_MS;
+      await deliver(100); await deliver(102); await deliver(100);
+      const saved = await cache.recoveryWindow('QQQ');
+      expect(saved.map(t => t.price)).toEqual([100, 102, 100]);
+      expect(new Set(saved.map(t => t.eventId)).size).toBe(3);
+      current += MINUTE_MS;
+      const snapshot = await cache.readTicks('QQQ', start, current);
+      expect(snapshot.coverageStart).toBe(start + MINUTE_MS);
+      expect(snapshot.ticks.map(t => t.price)).toEqual([100, 102, 100]);
+      recovery.disconnected();
+      expect(analysis.getHistory().points).toBe(0);
+      current += MINUTE_MS;
+      recovery.live();
+      await waitUntil(() => recovery.getStatus().state === 'LIVE');
+      expect(analysis.getStatus().fresh).toBe(false);
+      await deliver(90);
+      expect(analysis.getHistory().points).toBe(1);
+      expect(await cache.recoveryWindow('QQQ')).toHaveLength(4);
+      const boundary = current + MINUTE_MS;
+      current += 2 * MINUTE_MS;
+      expect((await cache.readTicks('QQQ', start, current)).coverageStart).toBe(boundary);
+      await engine.runCycle();
+      expect(engine.snapshot().results.find(r => r.symbol === 'QQQ')).toMatchObject({
+        status: 'insufficientData', atr: null, alert: false,
+      });
+      expect(query).not.toHaveBeenCalled();
+    } finally {
+      await recovery.onModuleDestroy(); engine.stop();
+    }
   });
   it("keeps equal-millisecond ticks, stable order, rejects duplicate/disorder/late and validates inputs", async () => {
     expect(await cache.appendTick(tick("z", start, 100))).toEqual({
@@ -216,6 +280,7 @@ integration("real Redis and WebSocket integration", () => {
     };
     const consumer = new MarketAtrConsumer(
       parseMarketDataConfig({
+        MARKET_DATA_PROVIDER: 'alpaca',
         MARKET_DATA_ENABLED: "true",
         MARKET_DATA_FEED: "mock",
       }),

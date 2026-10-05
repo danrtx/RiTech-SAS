@@ -41,7 +41,11 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
     context?: TickDeliveryContext,
   ): Promise<void> {
     if (context?.signal.aborted) return;
-    if (tick.symbol !== this.config.symbol || tick.feed !== this.config.feed)
+    if (
+      tick.provider !== this.config.provider ||
+      tick.symbol !== this.config.symbol ||
+      tick.feed !== this.config.feed
+    )
       throw new Error("market_data_tick_source_mismatch");
     const generation = this.generation;
     const current = () =>
@@ -68,15 +72,18 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
         ]),
       )
       .digest("hex");
-    const result = await this.cache.appendTick({
-      id,
-      symbol: tick.symbol,
-      price: tick.price,
-      volume: tick.volume,
-      eventTime: tick.eventTimeMs,
-      receivedAt: tick.receivedAtMs,
-      source: tick,
-    }, context?.recovery ?? false);
+    const result = await this.cache.appendTick(
+      {
+        id,
+        symbol: tick.symbol,
+        price: tick.price,
+        volume: tick.volume,
+        eventTime: tick.eventTimeMs,
+        receivedAt: tick.receivedAtMs,
+        source: tick,
+      },
+      context?.recovery ?? false,
+    );
     if (!current()) return;
     if (!result.accepted && result.reason !== "duplicate")
       throw new Error(`market_data_cache_${result.reason}`);
@@ -92,7 +99,21 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
   invalidate(reason: TickInvalidationReason): void {
     this.generation++;
     this.ingestion.beginRecovery();
-    if (['connection_unavailable', 'shutdown', 'consumer_error', 'consumer_timeout', 'queue_overflow', 'stale_delivery'].includes(reason)) {
+    if (this.config.provider === "twelvedata") {
+      // No exact replay is available: never evaluate a window across a gap.
+      this.needsBoundary = true;
+      this.atr.invalidateSymbol(this.config.symbol);
+      this.analysis.suspend(reason, true);
+    } else if (
+      [
+        "connection_unavailable",
+        "shutdown",
+        "consumer_error",
+        "consumer_timeout",
+        "queue_overflow",
+        "stale_delivery",
+      ].includes(reason)
+    ) {
       this.atr.suspendSymbol(this.config.symbol);
       this.analysis.suspend(reason);
     } else {
@@ -101,9 +122,24 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
       this.analysis.invalidate(reason);
     }
   }
+  async prepareLiveRestart(
+    startedAt: number,
+    signal: AbortSignal,
+  ): Promise<void> {
+    signal.throwIfAborted();
+    const boundary = minuteStart(startedAt) + MINUTE_MS;
+    await this.cache.advanceCoverage(this.config.symbol, boundary);
+    signal.throwIfAborted();
+    this.atr.invalidateSymbol(this.config.symbol, boundary);
+    this.analysis.restore([], false);
+    this.needsBoundary = false;
+  }
   async prepareRecovery(hasHistory: boolean, startedAt: number): Promise<void> {
     if (!hasHistory && this.needsBoundary)
-      await this.cache.advanceCoverage(this.config.symbol, minuteStart(startedAt) + MINUTE_MS);
+      await this.cache.advanceCoverage(
+        this.config.symbol,
+        minuteStart(startedAt) + MINUTE_MS,
+      );
     this.needsBoundary = false;
   }
 }

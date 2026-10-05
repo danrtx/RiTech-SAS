@@ -8,11 +8,8 @@ import {
 import { performance } from 'node:perf_hooks';
 import { ClientOptions, RawData, WebSocket } from 'ws';
 import { Subject } from 'rxjs';
-import {
-  AlpacaDataBatch,
-  AlpacaDataMessage,
-  MOCK_ALPACA_CREDENTIALS,
-} from './alpaca.protocol';
+import { MOCK_ALPACA_CREDENTIALS } from './alpaca.protocol';
+import { MarketDataBatch, MarketDataMessage } from './market-data.protocol';
 import { MARKET_DATA_CONFIG, MarketDataConfig } from './market-data.config';
 import {
   ConnectionFailure,
@@ -39,6 +36,7 @@ export class MarketDataWsClient implements OnModuleDestroy {
   private connection?: { socket: WebSocket; detach: () => void };
   private phaseTimer?: NodeJS.Timeout;
   private heartbeatTimer?: NodeJS.Timeout;
+  private heartbeatDeadline?: NodeJS.Timeout;
   private pongTimer?: NodeJS.Timeout;
   private expectedPong?: string;
   private pingSequence = 0;
@@ -48,7 +46,7 @@ export class MarketDataWsClient implements OnModuleDestroy {
     resolve: () => void;
     reject: (error: Error) => void;
   };
-  private readonly batches = new Subject<AlpacaDataBatch>();
+  private readonly batches = new Subject<MarketDataBatch>();
   private readonly statuses = new Subject<MarketDataConnectionStatus>();
   readonly status$ = this.statuses.asObservable();
   /** Canal interno de datos crudos; no habilita decisiones ni escribe en Redis. */
@@ -104,7 +102,20 @@ export class MarketDataWsClient implements OnModuleDestroy {
     this.lastError = undefined;
     this.transition('CONNECTING');
     try {
-      const socket = this.socketFactory(this.config.wsUrl, {
+      const endpoint = new URL(this.config.wsUrl);
+      if (this.config.provider === 'twelvedata') {
+        const key =
+          this.config.feed === 'mock'
+            ? 'mock-twelve-api-key'
+            : this.config.credentials?.apiKey;
+        if (!key) {
+          this.fail({ reason: 'credentials_missing', retryable: false });
+          return promise;
+        }
+        // La URL autenticada existe solo para abrir el socket; nunca entra al estado ni logs.
+        endpoint.searchParams.set('apikey', key);
+      }
+      const socket = this.socketFactory(endpoint.toString(), {
         followRedirects: false,
         perMessageDeflate: false,
         maxPayload: 1024 * 1024,
@@ -181,6 +192,15 @@ export class MarketDataWsClient implements OnModuleDestroy {
 
   private authenticate(): void {
     this.transition('AUTHENTICATING');
+    if (this.config.provider === 'twelvedata') {
+      this.transition('SUBSCRIBING');
+      this.armPhaseTimer(this.config.subscribeTimeoutMs, 'subscribe_timeout');
+      this.send({
+        action: 'subscribe',
+        params: { symbols: this.config.symbol },
+      });
+      return;
+    }
     this.armPhaseTimer(this.config.authTimeoutMs, 'auth_timeout');
     const credentials =
       this.config.feed === 'mock'
@@ -225,12 +245,22 @@ export class MarketDataWsClient implements OnModuleDestroy {
           ? Buffer.from(data)
           : data;
       frame = JSON.parse(buffer.toString('utf8'));
-      if (!Array.isArray(frame) || frame.length === 0) throw new Error();
+      if (this.config.provider === 'twelvedata') {
+        if (!isRecord(frame)) throw new Error();
+      } else if (!Array.isArray(frame) || frame.length === 0) throw new Error();
     } catch {
       this.invalidFrame();
       return;
     }
-    const messages: AlpacaDataMessage[] = [];
+    if (this.config.provider === 'twelvedata') {
+      this.receiveTwelveData(
+        frame as Record<string, unknown>,
+        receivedAtMs,
+        receivedAtMonotonicMs,
+      );
+      return;
+    }
+    const messages: MarketDataMessage[] = [];
     for (const entry of frame as unknown[]) {
       if (!isRecord(entry) || typeof entry.T !== 'string') {
         this.invalidFrame();
@@ -254,7 +284,7 @@ export class MarketDataWsClient implements OnModuleDestroy {
         }
       } else if (entry.T === 't' || entry.T === 'c' || entry.T === 'x') {
         if (this.state === 'LIVE')
-          messages.push(Object.freeze({ ...entry }) as AlpacaDataMessage);
+          messages.push(Object.freeze({ ...entry }) as MarketDataMessage);
         else {
           this.fail({ reason: 'invalid_control', retryable: false });
         }
@@ -270,6 +300,90 @@ export class MarketDataWsClient implements OnModuleDestroy {
         }),
       );
     }
+  }
+
+  private receiveTwelveData(
+    frame: Record<string, unknown>,
+    receivedAtMs: number,
+    receivedAtMonotonicMs: number,
+  ): void {
+    if (frame.event === 'error' || frame.status === 'error') {
+      const code =
+        typeof frame.code === 'number' && Number.isSafeInteger(frame.code)
+          ? frame.code
+          : undefined;
+      this.fail({
+        reason: 'provider_error',
+        providerCode: code,
+        retryable:
+          code === 429 || (code !== undefined && code >= 500 && code <= 599),
+      });
+      return;
+    }
+    if (frame.event === 'subscribe-status') {
+      if (this.state !== 'SUBSCRIBING' && this.state !== 'LIVE') {
+        this.fail({ reason: 'invalid_control', retryable: false });
+        return;
+      }
+      const subscribed =
+        Array.isArray(frame.success) &&
+        frame.success.some(
+          (entry) => isRecord(entry) && entry.symbol === this.config.symbol,
+        );
+      const rejected =
+        Array.isArray(frame.fails) &&
+        frame.fails.some(
+          (entry) => isRecord(entry) && entry.symbol === this.config.symbol,
+        );
+      if (frame.status !== 'ok' || !subscribed || rejected) {
+        this.fail({ reason: 'subscription_mismatch', retryable: false });
+        return;
+      }
+      this.clearPhaseTimer();
+      this.transition('LIVE');
+      this.startTwelveHeartbeat();
+      this.pending?.resolve();
+      this.pending = undefined;
+      return;
+    }
+    if (frame.event === 'heartbeat') {
+      if (frame.status === 'ok') {
+        if (this.heartbeatDeadline) clearTimeout(this.heartbeatDeadline);
+        this.heartbeatDeadline = undefined;
+      }
+      return;
+    }
+    if (frame.event === 'price') {
+      if (this.state !== 'LIVE') {
+        this.fail({ reason: 'invalid_control', retryable: false });
+        return;
+      }
+      this.batches.next(
+        Object.freeze({
+          messages: Object.freeze([
+            Object.freeze({ ...frame, T: 'price' as const }),
+          ]),
+          receivedAtMs,
+          receivedAtMonotonicMs,
+        }),
+      );
+      return;
+    }
+    this.logger.warn('market_data_unknown_message');
+  }
+
+  private startTwelveHeartbeat(): void {
+    if (this.heartbeatTimer) return;
+    this.heartbeatTimer = setInterval(() => {
+      if (this.state !== 'LIVE' || this.heartbeatDeadline) return;
+      this.heartbeatDeadline = setTimeout(
+        () => this.fail({ reason: 'heartbeat_timeout', retryable: true }),
+        this.config.heartbeatTimeoutMs,
+      );
+      this.heartbeatDeadline.unref();
+      this.send({ action: 'heartbeat' });
+    }, this.config.heartbeatMs);
+    this.heartbeatTimer.unref();
   }
 
   private invalidFrame(): void {
@@ -348,6 +462,8 @@ export class MarketDataWsClient implements OnModuleDestroy {
   private clearHeartbeat(): void {
     clearTimeout(this.heartbeatTimer);
     clearTimeout(this.pongTimer);
+    clearTimeout(this.heartbeatDeadline);
+    this.heartbeatDeadline = undefined;
     this.heartbeatTimer = undefined;
     this.pongTimer = undefined;
     this.expectedPong = undefined;

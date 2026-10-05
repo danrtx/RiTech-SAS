@@ -4,14 +4,89 @@ import { parseMarketDataConfig } from './market-data.config';
 describe('Configuración de market data', () => {
   afterEach(() => jest.restoreAllMocks());
 
-  it('arranca deshabilitada, sin claves, con QQQ y el endpoint IEX', () => {
+  it('usa solo Twelve Data por defecto aunque existan credenciales opcionales de Alpaca', () => {
+    const env = {
+      MARKET_DATA_ENABLED: 'true',
+      TWELVE_DATA_API_KEY: 'twelve-only',
+      ALPACA_API_KEY: 'unused-alpaca',
+      ALPACA_API_SECRET: 'unused-secret',
+    };
+    expect(parseMarketDataConfig(env)).toMatchObject({
+      provider: 'twelvedata',
+      feed: 'realtime',
+      credentials: { apiKey: 'twelve-only' },
+    });
+    expect(parseMarketDataConfig(env).credentials).not.toHaveProperty(
+      'apiSecret',
+    );
+    expect(() =>
+      parseMarketDataConfig({ ...env, TWELVE_DATA_API_KEY: '' }),
+    ).toThrow('TWELVE_DATA_API_KEY');
+  });
+
+  it('selecciona Twelve Data con una sola clave y endpoint sin credenciales', () => {
+    const config = parseMarketDataConfig({
+      MARKET_DATA_PROVIDER: 'twelvedata',
+      MARKET_DATA_ENABLED: 'true',
+      TWELVE_DATA_API_KEY: 'sentinel-key',
+      ALPACA_API_SECRET: 'unused-secret',
+    });
+    expect(config).toMatchObject({
+      provider: 'twelvedata',
+      feed: 'realtime',
+      symbol: 'QQQ',
+      wsUrl: 'wss://ws.twelvedata.com/v1/quotes/price',
+      credentials: { apiKey: 'sentinel-key' },
+      heartbeatMs: 10000,
+    });
+    expect(config.credentials).not.toHaveProperty('apiSecret');
+    expect(config.wsUrl).not.toContain('sentinel-key');
+    expect(() =>
+      parseMarketDataConfig({
+        MARKET_DATA_PROVIDER: 'twelvedata',
+        MARKET_DATA_ENABLED: 'true',
+      }),
+    ).toThrow('TWELVE_DATA_API_KEY');
+  });
+
+  it.each(['iex', 'test'])(
+    'rechaza el feed Alpaca %s con Twelve Data',
+    (feed) => {
+      expect(() =>
+        parseMarketDataConfig({
+          MARKET_DATA_PROVIDER: 'twelvedata',
+          MARKET_DATA_FEED: feed,
+        }),
+      ).toThrow('MARKET_DATA_FEED');
+    },
+  );
+
+  it('no acepta URLs externas con clave ni reutiliza credenciales reales en mock Twelve Data', () => {
+    expect(() =>
+      parseMarketDataConfig({
+        MARKET_DATA_PROVIDER: 'twelvedata',
+        MARKET_DATA_WS_URL:
+          'wss://ws.twelvedata.com/v1/quotes/price?apikey=sentinel-key',
+      }),
+    ).toThrow('MARKET_DATA_WS_URL');
+    const config = parseMarketDataConfig({
+      MARKET_DATA_PROVIDER: 'twelvedata',
+      MARKET_DATA_FEED: 'mock',
+      MARKET_DATA_ENABLED: 'true',
+      TWELVE_DATA_API_KEY: 'sentinel-key',
+    });
+    expect(config.credentials).toBeUndefined();
+    expect(JSON.stringify(config)).not.toContain('sentinel-key');
+  });
+
+  it('arranca deshabilitada, sin claves, con QQQ y Twelve Data por defecto', () => {
     const config = parseMarketDataConfig({});
     expect(config).toMatchObject({
       enabled: false,
-      provider: 'alpaca',
-      feed: 'iex',
+      provider: 'twelvedata',
+      feed: 'realtime',
       symbol: 'QQQ',
-      wsUrl: 'wss://stream.data.alpaca.markets/v2/iex',
+      wsUrl: 'wss://ws.twelvedata.com/v1/quotes/price',
       credentials: undefined,
     });
     expect(Object.isFrozen(config)).toBe(true);
@@ -24,17 +99,22 @@ describe('Configuración de market data', () => {
     expect(() => envConfig()).toThrow('MARKET_DATA_QUEUE_CAPACITY');
   });
 
-  it('exige ambas claves al habilitar el feed externo', () => {
+  it('exige ambas claves solo al elegir Alpaca explícitamente', () => {
     expect(() =>
-      parseMarketDataConfig({ MARKET_DATA_ENABLED: 'true' }),
+      parseMarketDataConfig({
+        MARKET_DATA_PROVIDER: 'alpaca',
+        MARKET_DATA_ENABLED: 'true',
+      }),
     ).toThrow('ALPACA_API_KEY');
     expect(() =>
       parseMarketDataConfig({
+        MARKET_DATA_PROVIDER: 'alpaca',
         MARKET_DATA_ENABLED: 'true',
         ALPACA_API_KEY: 'fake',
       }),
     ).toThrow('ALPACA_API_SECRET');
     const config = parseMarketDataConfig({
+      MARKET_DATA_PROVIDER: 'alpaca',
       MARKET_DATA_ENABLED: 'true',
       ALPACA_API_KEY: 'fake-key',
       ALPACA_API_SECRET: 'fake-secret',
@@ -49,11 +129,15 @@ describe('Configuración de market data', () => {
   });
 
   it('mantiene FAKEPACA separado del feed QQQ', () => {
-    const config = parseMarketDataConfig({ MARKET_DATA_FEED: 'test' });
+    const config = parseMarketDataConfig({
+      MARKET_DATA_PROVIDER: 'alpaca',
+      MARKET_DATA_FEED: 'test',
+    });
     expect(config.symbol).toBe('FAKEPACA');
     expect(config.wsUrl).toBe('wss://stream.data.alpaca.markets/v2/test');
     expect(() =>
       parseMarketDataConfig({
+        MARKET_DATA_PROVIDER: 'alpaca',
         MARKET_DATA_FEED: 'test',
         MARKET_DATA_SYMBOL: 'QQQ',
       }),

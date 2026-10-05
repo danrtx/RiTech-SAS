@@ -8,7 +8,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { MarketDataFeed } from '../market-data.config';
+import { MarketDataFeed, MarketDataProvider } from '../market-data.config';
 import type { MarketReference } from '../market-reference';
 import {
   InvestmentMetrics,
@@ -75,7 +75,7 @@ export interface PriceAlert {
   readonly alertId: string;
   readonly ruleId: string;
   readonly symbol: string;
-  readonly provider: 'alpaca';
+  readonly provider: MarketDataProvider;
   readonly feed: MarketDataFeed;
   readonly simulated: boolean;
   readonly direction: 'up' | 'down';

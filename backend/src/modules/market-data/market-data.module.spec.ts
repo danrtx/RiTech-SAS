@@ -61,6 +61,7 @@ describe('Arranque de MarketDataModule', () => {
           load: [
             () => ({
               marketData: parseMarketDataConfig({
+                MARKET_DATA_PROVIDER: 'alpaca',
                 MARKET_DATA_ENABLED: 'true',
                 MARKET_DATA_FEED: 'mock',
                 MARKET_DATA_WS_URL: url,

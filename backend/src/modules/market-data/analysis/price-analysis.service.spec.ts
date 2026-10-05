@@ -33,12 +33,49 @@ describe('Análisis de variación y alertas', () => {
       broadcastInvestmentUpdate: jest.fn(),
     };
     service = new PriceAnalysisService(
-      parseMarketDataConfig({ MARKET_DATA_FEED: 'mock' }),
+      parseMarketDataConfig({ MARKET_DATA_PROVIDER: 'alpaca', MARKET_DATA_FEED: 'mock' }),
       gateway as unknown as TelemetryGateway,
       new InvestmentAnalysisService(),
     );
   });
   afterEach(() => jest.restoreAllMocks());
+
+  it('identifica el feed real Twelve Data sin marcar resultados como simulados', async () => {
+    service = new PriceAnalysisService(
+      parseMarketDataConfig({ MARKET_DATA_PROVIDER: 'twelvedata' }),
+      gateway as unknown as TelemetryGateway,
+      new InvestmentAnalysisService(),
+    );
+    service.upsertRule('real', defaultRule);
+    for (const [offset, price] of [
+      [0, 100],
+      [300000, 102],
+    ]) {
+      jest.spyOn(Date, 'now').mockReturnValue(BASE + offset);
+      await service.consume({
+        ...normalizedTick(BASE + offset, price),
+        provider: 'twelvedata',
+        feed: 'realtime',
+        kind: 'price',
+        volume: 0,
+        conditions: [],
+      });
+    }
+    expect(gateway.broadcastPriceAlert.mock.calls[0][0]).toMatchObject({
+      provider: 'twelvedata',
+      feed: 'realtime',
+      simulated: false,
+      marketReference: { provider: 'twelvedata', simulated: false },
+      changePercent: 2,
+      investment: { changePercent: 4 },
+    });
+    expect(gateway.broadcastInvestmentUpdate.mock.calls[1][0]).toMatchObject({
+      feed: 'realtime',
+      simulated: false,
+      marketReference: { provider: 'twelvedata', simulated: false },
+      status: 'READY',
+    });
+  });
 
   async function tick(offset: number, price: number) {
     jest.spyOn(Date, 'now').mockReturnValue(BASE + offset);
@@ -184,6 +221,7 @@ describe('Análisis de variación y alertas', () => {
     expect(service.listRules()).toEqual([]);
     const limited = new PriceAnalysisService(
       parseMarketDataConfig({
+        MARKET_DATA_PROVIDER: 'alpaca',
         MARKET_DATA_FEED: 'mock',
         MARKET_DATA_MAX_ALERT_RULES: '1',
       }),
