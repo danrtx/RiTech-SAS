@@ -1,3 +1,8 @@
+import {
+  MarketDataConfig,
+  parseMarketDataConfig,
+} from '../modules/market-data/market-data.config';
+
 export interface EnvironmentVariables {
   NODE_ENV: string;
   PORT: number;
@@ -13,18 +18,24 @@ export interface EnvironmentVariables {
   REDIS_PASS: string;
   // Telemetry WS
   WS_PORT: number;
+  marketData: MarketDataConfig;
 }
 
 export const envConfig = (): EnvironmentVariables => ({
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '3000', 10),
   DB_HOST: process.env.DB_HOST || process.env.POSTGRES_HOST || 'localhost',
-  DB_PORT: parseInt(process.env.DB_PORT || process.env.POSTGRES_PORT || '5433', 10),
+  DB_PORT: parseInt(
+    process.env.DB_PORT || process.env.POSTGRES_PORT || '5433',
+    10,
+  ),
   DB_USER: process.env.DB_USER || process.env.POSTGRES_USER || 'ritech',
-  DB_PASS: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'ritech_dev',
+  DB_PASS:
+    process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'ritech_dev',
   DB_NAME: process.env.DB_NAME || process.env.POSTGRES_DB || 'ritech',
   REDIS_HOST: process.env.REDIS_HOST || 'localhost',
   REDIS_PORT: parseInt(process.env.REDIS_PORT || '6379', 10),
   REDIS_PASS: process.env.REDIS_PASSWORD || 'ritech_dev',
   WS_PORT: parseInt(process.env.WS_PORT || '4000', 10),
+  marketData: parseMarketDataConfig(process.env),
 });
