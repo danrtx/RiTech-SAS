@@ -101,7 +101,7 @@ export function parseMarketDataConfig(
     invalid("MARKET_DATA_ENABLED", "debe ser true o false");
   }
   const enabled = enabledValue === "true";
-  const provider = env.MARKET_DATA_PROVIDER?.trim() || "alpaca";
+  const provider = env.MARKET_DATA_PROVIDER?.trim() || "twelvedata";
   if (provider !== "alpaca" && provider !== "twelvedata")
     invalid("MARKET_DATA_PROVIDER", "debe ser alpaca o twelvedata");
 

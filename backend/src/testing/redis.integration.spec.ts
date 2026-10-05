@@ -280,6 +280,7 @@ integration("real Redis and WebSocket integration", () => {
     };
     const consumer = new MarketAtrConsumer(
       parseMarketDataConfig({
+        MARKET_DATA_PROVIDER: 'alpaca',
         MARKET_DATA_ENABLED: "true",
         MARKET_DATA_FEED: "mock",
       }),

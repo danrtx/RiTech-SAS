@@ -33,7 +33,7 @@ describe('Análisis de variación y alertas', () => {
       broadcastInvestmentUpdate: jest.fn(),
     };
     service = new PriceAnalysisService(
-      parseMarketDataConfig({ MARKET_DATA_FEED: 'mock' }),
+      parseMarketDataConfig({ MARKET_DATA_PROVIDER: 'alpaca', MARKET_DATA_FEED: 'mock' }),
       gateway as unknown as TelemetryGateway,
       new InvestmentAnalysisService(),
     );
@@ -221,6 +221,7 @@ describe('Análisis de variación y alertas', () => {
     expect(service.listRules()).toEqual([]);
     const limited = new PriceAnalysisService(
       parseMarketDataConfig({
+        MARKET_DATA_PROVIDER: 'alpaca',
         MARKET_DATA_FEED: 'mock',
         MARKET_DATA_MAX_ALERT_RULES: '1',
       }),

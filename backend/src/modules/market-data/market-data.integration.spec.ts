@@ -15,6 +15,8 @@ import { MarketTick } from "./dto/market-tick.dto";
 import { Tick } from "./market.types";
 import { waitUntil } from "../../testing/mock-provider";
 import { TwelveDataMockServer } from "./testing/twelve-data-mock.server";
+import { AlpacaAdapter } from "./adapters/alpaca.adapter";
+import { MarketHistoryClient } from "./market-history.client";
 import { AlpacaMockServer } from "./testing/alpaca-mock.server";
 import { createTradeFixture } from "./testing/alpaca.fixtures";
 import { TEST_TIME_MS as BASE } from "./testing/market-tick.fixture";
@@ -82,6 +84,26 @@ describe("Mock → backend → historial/reglas HTTP → alerta Socket.IO", () =
     async (provider) => {
       jest.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
       jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
+      const alpacaNormalization =
+        provider === "twelvedata"
+          ? jest
+              .spyOn(AlpacaAdapter.prototype, "normalize")
+              .mockImplementation(() => {
+                throw new Error(
+                  "Alpaca must not participate in Twelve Data ingestion",
+                );
+              })
+          : undefined;
+      const historicalRequest =
+        provider === "twelvedata"
+          ? jest
+              .spyOn(MarketHistoryClient.prototype, "fetch")
+              .mockRejectedValue(
+                new Error(
+                  "Alpaca history must not participate in Twelve Data recovery",
+                ),
+              )
+          : undefined;
       const mock =
         provider === "twelvedata"
           ? new TwelveDataMockServer()
@@ -367,6 +389,8 @@ describe("Mock → backend → historial/reglas HTTP → alerta Socket.IO", () =
             provider: "twelvedata",
           });
           expect(persisted.size).toBe(5);
+          expect(alpacaNormalization).not.toHaveBeenCalled();
+          expect(historicalRequest).not.toHaveBeenCalled();
         }
         expect(
           (
