@@ -10,6 +10,10 @@ import { MarketDataModule } from './market-data.module';
 import { parseMarketDataConfig } from './market-data.config';
 import { MarketDataWsClient } from './market-data-ws.client';
 import { MarketDataProcessor } from './market-data.processor';
+import { MarketDataService } from './market-data.service';
+import { MarketTick } from './dto/market-tick.dto';
+import { Tick } from './market.types';
+import { waitUntil } from '../../testing/mock-provider';
 import { AlpacaMockServer } from './testing/alpaca-mock.server';
 import { TwelveDataMockServer } from './testing/twelve-data-mock.server';
 import { createTradeFixture } from './testing/alpaca.fixtures';
@@ -149,6 +153,78 @@ describe('Mock → backend → historial/reglas HTTP → alerta Socket.IO', () =
         expect(
           (await fetch(`${http}/market-data/history?limit=1001`)).status,
         ).toBe(400);
+  it('emite alertas y conserva el historial durante la recuperación de un corte', async () => {
+    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const mock = new AlpacaMockServer();
+    const url = await mock.start();
+    const persisted = new Map<string, MarketTick>();
+    const redis = {
+      appendTick: jest.fn(async (tick: Tick) => {
+        if (persisted.has(tick.id)) return { accepted: false, reason: 'duplicate' };
+        persisted.set(tick.id, tick.source!); return { accepted: true };
+      }),
+      recoveryWindow: jest.fn(async () => [...persisted.values()].sort((a, b) => a.eventTimeMs - b.eventTimeMs)),
+      advanceCoverage: jest.fn().mockResolvedValue(undefined),
+      readTicks: jest.fn().mockResolvedValue({ ticks: [] }),
+    };
+    const module = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          ignoreEnvFile: true,
+          load: [
+            () => ({
+              marketData: parseMarketDataConfig({
+                MARKET_DATA_ENABLED: 'true',
+                MARKET_DATA_FEED: 'mock',
+                MARKET_DATA_WS_URL: url,
+              }),
+            }),
+          ],
+        }),
+        RedisCacheModule,
+        MarketDataModule,
+      ],
+    })
+      .overrideProvider(RedisCacheService)
+      .useValue(redis)
+      .compile();
+    const app = module.createNestApplication();
+    let socket: WebSocket | undefined;
+    try {
+      await app.listen(0, '127.0.0.1');
+      await waitUntil(() => app.get(MarketDataService).getStatus().continuity?.state === 'LIVE');
+      const http = await app.getUrl();
+      const put = await fetch(`${http}/market-data/rules/qqq-1s`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          windowMs: 1000,
+          upPercent: 4,
+          downPercent: 4,
+          thresholdBasis: 'INVESTMENT',
+          investedAmount: 10000,
+          cooldownMs: 0,
+        }),
+      });
+      expect(put.status).toBe(200);
+      expect(await put.json()).toMatchObject({ id: 'qqq-1s', enabled: true });
+      const invalid = await fetch(`${http}/market-data/rules/invalid`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          windowMs: '1000',
+          upPercent: 0,
+          downPercent: 1,
+          secret: 'sentinel-secret',
+        }),
+      });
+      expect(invalid.status).toBe(400);
+      expect(await invalid.text()).not.toContain('sentinel-secret');
+      expect(
+        (await fetch(`${http}/market-data/history?limit=1001`)).status,
+      ).toBe(400);
 
         socket = new WebSocket(
           `${http.replace('http:', 'ws:')}/socket.io/?EIO=4&transport=websocket`,
@@ -347,4 +423,79 @@ describe('Mock → backend → historial/reglas HTTP → alerta Socket.IO', () =
       }
     },
   );
+          alertsEmitted: 2,
+          rules: [{ analysis: { status: 'READY' } }],
+        },
+      });
+      expect(status.ingestion.receiptToConsumerLatencyMs.max).toBeLessThan(200);
+      expect(
+        await (await fetch(`${http}/market-data/history?limit=1`)).json(),
+      ).toMatchObject({
+        points: 3,
+        samples: [{ eventTimeMs: BASE + 1100, price: 98 }],
+      });
+      expect(redis.appendTick).toHaveBeenCalledTimes(3);
+
+      const degraded = firstValueFrom(
+        app.get(MarketDataWsClient).status$.pipe(
+          filter((status) => status.state === 'DEGRADED'),
+          timeout(2000),
+        ),
+      );
+      const recovered = firstValueFrom(
+        app.get(MarketDataWsClient).status$.pipe(
+          filter((status) => status.state === 'LIVE'),
+          timeout(2000),
+        ),
+      );
+      const disconnectedAt = performance.now();
+      mock.disconnectClients();
+      await degraded;
+      const quality = await frame((line) =>
+        line.includes('"market_data_quality"'),
+      );
+      expect(quality).toContain('connection_unavailable');
+      expect(
+        await (await fetch(`${http}/market-data/history`)).json(),
+      ).toMatchObject({ points: 3 });
+      await recovered;
+      await waitUntil(() => app.get(MarketDataService).getStatus().continuity?.state === 'LIVE');
+      expect(performance.now() - disconnectedAt).toBeLessThan(2000);
+      expect(
+        await (await fetch(`${http}/market-data/status`)).json(),
+      ).toMatchObject({
+        connection: { state: 'LIVE' },
+        recovery: { reconnects: 1 },
+      });
+      jest.spyOn(Date, 'now').mockReturnValue(BASE + 2000);
+      mock.publish([
+        createTradeFixture({
+          i: 4,
+          p: 100,
+          t: new Date(BASE + 2000).toISOString(),
+        }),
+      ]);
+      await frame(
+        (line) =>
+          line.includes('"telemetry_tick"') &&
+          line.includes(`"eventTimeMs":${BASE + 2000}`),
+      );
+      await app.get(MarketDataProcessor).whenIdle();
+      expect(
+        await (await fetch(`${http}/market-data/rules`)).json(),
+      ).toMatchObject([{ analysis: { status: 'READY' } }]);
+      expect(
+        (await fetch(`${http}/market-data/rules/qqq-1s`, { method: 'DELETE' }))
+          .status,
+      ).toBe(200);
+      expect(await (await fetch(`${http}/market-data/rules`)).json()).toEqual(
+        [],
+      );
+    } finally {
+      socket?.terminate();
+      await app.close();
+      await mock.stop();
+      jest.restoreAllMocks();
+    }
+  });
 });

@@ -22,6 +22,7 @@ import {
 import { TelemetryGateway } from '../../telemetry/telemetry.gateway';
 import { PriceHistory } from './price-history';
 import { InvestmentAnalysisService } from '../../hedging/investment-analysis.service';
+import { describeMarketReference } from '../market-reference';
 
 interface RuleState {
   rule: PriceAlertRule;
@@ -31,7 +32,8 @@ interface RuleState {
 
 @Injectable()
 export class PriceAnalysisService implements TickConsumer {
-  private readonly history: PriceHistory;
+  private history: PriceHistory;
+  private recovering = false;
   private readonly rules = new Map<string, RuleState>();
   private lastInvalidation?: TickInvalidationReason;
   private alertsEmitted = 0;
@@ -55,10 +57,17 @@ export class PriceAnalysisService implements TickConsumer {
     if (
       validateSync(dto, { whitelist: true, forbidNonWhitelisted: true })
         .length ||
-      dto.windowMs > this.config.historyRetentionMs
+      (dto.windowMs !== undefined &&
+        dto.windowMs > this.config.historyRetentionMs) ||
+      (dto.referenceMode === 'ENTRY' &&
+        (dto.entryTimeMs! > Date.now() ||
+          dto.windowMs !== undefined ||
+          dto.investedAmount == null)) ||
+      (dto.referenceMode !== 'ENTRY' &&
+        (dto.entryPrice !== undefined || dto.entryTimeMs !== undefined))
     ) {
       throw new BadRequestException(
-        'Regla inválida; windowMs debe estar dentro de la retención configurada',
+        'Regla inválida: usar WINDOW con windowMs dentro de la retención, o ENTRY con capital, precio y fecha de entrada no futura; no mezclar referencias',
       );
     }
     if (!this.rules.has(id) && this.rules.size >= this.config.maxAlertRules) {
@@ -68,6 +77,9 @@ export class PriceAnalysisService implements TickConsumer {
     }
     const rule = Object.freeze({
       id,
+      referenceMode: dto.referenceMode ?? 'WINDOW',
+      entryPrice: dto.entryPrice,
+      entryTimeMs: dto.entryTimeMs,
       windowMs: dto.windowMs,
       upPercent: dto.upPercent,
       downPercent: dto.downPercent,
@@ -94,6 +106,7 @@ export class PriceAnalysisService implements TickConsumer {
   }
 
   private analysis(rule: PriceAlertRule, nowMs: number) {
+    if (this.recovering) return { status: 'UNAVAILABLE' as const };
     const current = this.history.latest();
     if (!rule.enabled) return { status: 'DISABLED' as const };
     if (!current) return { status: 'WARMING_UP' as const };
@@ -102,8 +115,20 @@ export class PriceAnalysisService implements TickConsumer {
       current.eventTimeMs - nowMs > this.config.futureToleranceMs
     )
       return { status: 'STALE' as const };
-    const targetMs = current.eventTimeMs - rule.windowMs;
-    const reference = this.history.reference(targetMs);
+    const targetMs = current.eventTimeMs - (rule.windowMs ?? 0);
+    if (
+      rule.referenceMode === 'ENTRY' &&
+      current.eventTimeMs < rule.entryTimeMs!
+    )
+      return { status: 'WARMING_UP' as const };
+    const reference =
+      rule.referenceMode === 'ENTRY'
+        ? {
+            price: rule.entryPrice!,
+            eventTimeMs: rule.entryTimeMs!,
+            eventTime: new Date(rule.entryTimeMs!).toISOString(),
+          }
+        : this.history.reference(targetMs);
     if (!reference)
       return {
         status:
@@ -123,6 +148,7 @@ export class PriceAnalysisService implements TickConsumer {
     }
     return {
       status: 'READY' as const,
+      referenceMode: rule.referenceMode ?? 'WINDOW',
       changePercent,
       ...impact,
       price: current.price,
@@ -156,17 +182,21 @@ export class PriceAnalysisService implements TickConsumer {
     for (const state of this.rules.values()) {
       const result = this.analysis(state.rule, nowMs);
       this.gateway.broadcastInvestmentUpdate({
+        marketReference: describeMarketReference(this.config),
         schemaVersion: 1,
         ruleId: state.rule.id,
         symbol: tick.symbol,
         feed: tick.feed,
         simulated: tick.feed === 'mock' || tick.feed === 'test',
         windowMs: state.rule.windowMs,
+        referenceMode: state.rule.referenceMode ?? 'WINDOW',
         status: result.status,
         evaluatedAtMs: nowMs,
         ...(result.status === 'READY'
           ? {
               investment: result.investment,
+              referencePrice: result.referencePrice,
+              referenceTimeMs: result.referenceTimeMs,
               decision: result.decision,
               validUntilMs: tick.eventTimeMs + this.config.maxTickAgeMs,
             }
@@ -193,6 +223,7 @@ export class PriceAnalysisService implements TickConsumer {
         continue;
       }
       const alert: PriceAlert = Object.freeze({
+        marketReference: describeMarketReference(this.config),
         schemaVersion: 1,
         alertId: randomUUID(),
         ruleId: state.rule.id,
@@ -202,6 +233,7 @@ export class PriceAnalysisService implements TickConsumer {
         simulated: tick.feed === 'mock' || tick.feed === 'test',
         direction: region as 'up' | 'down',
         windowMs: state.rule.windowMs,
+        referenceMode: state.rule.referenceMode ?? 'WINDOW',
         thresholdPercent:
           region === 'up' ? state.rule.upPercent : state.rule.downPercent,
         changePercent: result.changePercent,
@@ -235,10 +267,68 @@ export class PriceAnalysisService implements TickConsumer {
       occurredAtMs: Date.now(),
     });
   }
+  suspend(reason: TickInvalidationReason): void {
+    this.recovering = true;
+    this.lastInvalidation = reason;
+    this.gateway.broadcastMarketDataQuality({
+      symbol: this.config.symbol,
+      feed: this.config.feed,
+      reason,
+      occurredAtMs: Date.now(),
+    });
+  }
+  restore(ticks: readonly MarketTick[], resume = true): void {
+    const history = new PriceHistory(
+      this.config.historyCapacity,
+      this.config.historyRetentionMs,
+      this.config.referenceToleranceMs,
+    );
+    for (const tick of ticks) history.append(tick);
+    this.history = history;
+    this.recovering = false;
+    this.lastInvalidation = undefined;
+    // Re-arm to the recovered current region without replaying old notifications.
+    for (const state of this.rules.values()) {
+      const result = this.analysis(
+        state.rule,
+        ticks.at(-1)?.eventTimeMs ?? Date.now(),
+      );
+      state.region =
+        result.status !== 'READY'
+          ? 'neutral'
+          : result.decision.evaluatedChangePercent >= state.rule.upPercent
+            ? 'up'
+            : result.decision.evaluatedChangePercent <= -state.rule.downPercent
+              ? 'down'
+              : 'neutral';
+    }
+    this.recovering = !resume;
+  }
+  appendRecovered(tick: MarketTick): void {
+    this.history.append(tick);
+  }
+  resume(): void {
+    this.recovering = false;
+    for (const state of this.rules.values()) {
+      const result = this.analysis(
+        state.rule,
+        this.history.latest()?.eventTimeMs ?? Date.now(),
+      );
+      state.region =
+        result.status !== 'READY'
+          ? 'neutral'
+          : result.decision.evaluatedChangePercent >= state.rule.upPercent
+            ? 'up'
+            : result.decision.evaluatedChangePercent <= -state.rule.downPercent
+              ? 'down'
+              : 'neutral';
+    }
+  }
 
   listRules(nowMs = Date.now()) {
     return [...this.rules.values()].map(({ rule }) => ({
       ...rule,
+      marketReference: describeMarketReference(this.config),
       analysis: this.analysis(rule, nowMs),
     }));
   }
@@ -248,6 +338,7 @@ export class PriceAnalysisService implements TickConsumer {
       throw new BadRequestException('limit debe estar entre 1 y 1000');
     return {
       symbol: this.config.symbol,
+      marketReference: describeMarketReference(this.config),
       feed: this.config.feed,
       ...this.history.getMetadata(),
       samples: this.history.snapshot(limit),
@@ -258,12 +349,15 @@ export class PriceAnalysisService implements TickConsumer {
     const current = this.history.latest();
     return {
       ...this.history.getMetadata(),
+      marketReference: describeMarketReference(this.config),
       lastInvalidation: this.lastInvalidation,
       fresh:
+        !this.recovering &&
         !!current &&
         Date.now() - current.eventTimeMs <= this.config.maxTickAgeMs &&
         current.eventTimeMs - Date.now() <= this.config.futureToleranceMs,
       alertsEmitted: this.alertsEmitted,
+      recovering: this.recovering,
       alertsSuppressed: this.alertsSuppressed,
       rules: this.listRules(),
     };

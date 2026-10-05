@@ -4,10 +4,12 @@ import {
   IsNumber,
   IsIn,
   IsOptional,
+  ValidateIf,
   Max,
   Min,
 } from 'class-validator';
-import { MarketDataFeed, MarketDataProvider } from '../market-data.config';
+import { MarketDataFeed } from '../market-data.config';
+import type { MarketReference } from '../market-reference';
 import {
   InvestmentMetrics,
   InvestmentDecision,
@@ -15,6 +17,21 @@ import {
 } from '../../hedging/investment-analysis.service';
 
 export class PriceAlertRuleDto {
+  @IsOptional()
+  @IsIn(['WINDOW', 'ENTRY'])
+  referenceMode?: 'WINDOW' | 'ENTRY';
+
+  @ValidateIf((o) => o.referenceMode === 'ENTRY' || o.entryPrice !== undefined)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(0.000001)
+  entryPrice?: number;
+
+  @ValidateIf((o) => o.referenceMode === 'ENTRY' || o.entryTimeMs !== undefined)
+  @IsInt()
+  @Min(0)
+  @Max(8640000000000000)
+  entryTimeMs?: number;
+
   @IsIn(['REFERENCE', 'INVESTMENT'])
   thresholdBasis: ThresholdBasis = 'REFERENCE';
 
@@ -24,9 +41,10 @@ export class PriceAlertRuleDto {
   @Max(1000000000000)
   investedAmount?: number;
 
+  @ValidateIf((o) => o.referenceMode !== 'ENTRY' || o.windowMs !== undefined)
   @IsInt()
   @Min(1000)
-  windowMs: number;
+  windowMs?: number;
 
   @IsNumber({ allowNaN: false, allowInfinity: false })
   @Min(0.000001)
@@ -52,6 +70,7 @@ export interface PriceAlertRule extends Readonly<PriceAlertRuleDto> {
 }
 
 export interface PriceAlert {
+  readonly marketReference?: MarketReference;
   readonly schemaVersion: 1;
   readonly alertId: string;
   readonly ruleId: string;
@@ -60,7 +79,8 @@ export interface PriceAlert {
   readonly feed: MarketDataFeed;
   readonly simulated: boolean;
   readonly direction: 'up' | 'down';
-  readonly windowMs: number;
+  readonly windowMs?: number;
+  readonly referenceMode?: 'WINDOW' | 'ENTRY';
   readonly thresholdPercent: number;
   readonly changePercent: number;
   readonly thresholdBasis: ThresholdBasis;

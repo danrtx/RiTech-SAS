@@ -37,6 +37,9 @@ export class MarketDataWsClient implements OnModuleDestroy {
   private phaseTimer?: NodeJS.Timeout;
   private heartbeatTimer?: NodeJS.Timeout;
   private heartbeatDeadline?: NodeJS.Timeout;
+  private pongTimer?: NodeJS.Timeout;
+  private expectedPong?: string;
+  private pingSequence = 0;
   private closing?: Promise<void>;
   private pending?: {
     promise: Promise<void>;
@@ -141,6 +144,14 @@ export class MarketDataWsClient implements OnModuleDestroy {
         this.connection?.detach();
         this.connection = undefined;
       };
+      const pong = (data: Buffer) => {
+        if (current() && this.expectedPong === data.toString()) {
+          clearTimeout(this.pongTimer);
+          this.pongTimer = undefined;
+          this.expectedPong = undefined;
+          this.armHeartbeat();
+        }
+      };
       // Nunca leer ni registrar headers, cuerpo o mensaje de rechazo HTTP.
       const unexpectedResponse = (
         _request: unknown,
@@ -163,6 +174,7 @@ export class MarketDataWsClient implements OnModuleDestroy {
           socket.off('error', error);
           socket.off('close', close);
           socket.off('unexpected-response', unexpectedResponse);
+          socket.off('pong', pong);
         },
       };
       socket.on('open', open);
@@ -170,6 +182,7 @@ export class MarketDataWsClient implements OnModuleDestroy {
       socket.on('error', error);
       socket.on('close', close);
       socket.on('unexpected-response', unexpectedResponse);
+      socket.on('pong', pong);
       this.armPhaseTimer(this.config.connectTimeoutMs, 'connect_timeout');
     } catch {
       this.fail({ reason: 'transport_error', retryable: true });
@@ -411,6 +424,7 @@ export class MarketDataWsClient implements OnModuleDestroy {
     }
     this.clearPhaseTimer();
     this.transition('LIVE');
+    this.armHeartbeat();
     this.pending?.resolve();
     this.pending = undefined;
   }
@@ -450,6 +464,40 @@ export class MarketDataWsClient implements OnModuleDestroy {
   private clearPhaseTimer(): void {
     if (this.phaseTimer) clearTimeout(this.phaseTimer);
     this.phaseTimer = undefined;
+  }
+
+  private clearHeartbeat(): void {
+    clearTimeout(this.heartbeatTimer);
+    clearTimeout(this.pongTimer);
+    this.heartbeatTimer = undefined;
+    this.pongTimer = undefined;
+    this.expectedPong = undefined;
+  }
+
+  private armHeartbeat(): void {
+    if (this.state !== 'LIVE' || this.heartbeatTimer || this.pongTimer) return;
+    this.heartbeatTimer = setTimeout(() => {
+      this.heartbeatTimer = undefined;
+      const socket = this.connection?.socket;
+      if (this.state !== 'LIVE' || socket?.readyState !== WebSocket.OPEN)
+        return;
+      const token = String(++this.pingSequence);
+      this.expectedPong = token;
+      this.pongTimer = setTimeout(() => {
+        if (this.connection?.socket === socket)
+          this.fail({ reason: 'heartbeat_timeout', retryable: true });
+      }, this.config.heartbeatTimeoutMs);
+      this.pongTimer.unref();
+      try {
+        socket.ping(token, undefined, (error: Error | undefined) => {
+          if (error && this.connection?.socket === socket)
+            this.fail({ reason: 'send_failed', retryable: true });
+        });
+      } catch {
+        this.fail({ reason: 'send_failed', retryable: true });
+      }
+    }, this.config.heartbeatMs);
+    this.heartbeatTimer.unref();
   }
 
   private armPhaseTimer(

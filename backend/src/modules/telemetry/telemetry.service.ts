@@ -1,24 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { TelemetryGateway } from './telemetry.gateway';
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
+import { Injectable } from "@nestjs/common";
+import { TelemetryGateway } from "./telemetry.gateway";
+import { RedisCacheService } from "../redis-cache/redis-cache.service";
+import { MarketClock, Tick } from "../market-data/market.types";
 
 @Injectable()
 export class TelemetryService {
-  private readonly logger = new Logger(TelemetryService.name);
-
   constructor(
-    private readonly telemetryGateway: TelemetryGateway,
-    private readonly redisCacheService: RedisCacheService,
+    private readonly gateway: TelemetryGateway,
+    private readonly cache: RedisCacheService,
+    private readonly clock: MarketClock,
   ) {}
-
-  async processIncomingTick(symbol: string, price: number, volume: number) {
-    const tickPayload = { price, volume, timestamp: Date.now() };
-
-    // 1. Cache tick data in Redis (rolling window/quick access)
-    await this.redisCacheService.setTick(symbol, tickPayload);
-    await this.redisCacheService.pushATRWindow(symbol, price);
-
-    // 2. Broadcast via WebSocket Gateway
-    this.telemetryGateway.broadcastTick(symbol, tickPayload);
+  /** Provider adapters retain stable IDs and eventTime on replay. */
+  async processIncomingTick(input: Omit<Tick, "receivedAt">) {
+    const tick: Tick = { ...input, receivedAt: this.clock.now() };
+    const result = await this.cache.appendTick(tick);
+    if (result.accepted) this.gateway.broadcastTick(tick.symbol, tick);
+    return result;
   }
 }

@@ -27,6 +27,10 @@ export interface MarketDataConfig {
   readonly historyCapacity: number;
   readonly referenceToleranceMs: number;
   readonly maxAlertRules: number;
+  readonly recoveryTimeoutMs: number;
+  readonly recoveryMaxTicks: number;
+  readonly recoveryMaxGapMs: number;
+  readonly historyPageSize: number;
 }
 
 type Environment = Readonly<Record<string, string | undefined>>;
@@ -209,6 +213,8 @@ export function parseMarketDataConfig(
       provider === 'twelvedata' ? 10000 : 15000,
     ),
     heartbeatTimeoutMs: phaseTimeout('MARKET_DATA_HEARTBEAT_TIMEOUT_MS', 10000),
+    heartbeatMs: phaseTimeout('MARKET_DATA_HEARTBEAT_MS', 500),
+    heartbeatTimeoutMs: phaseTimeout('MARKET_DATA_HEARTBEAT_TIMEOUT_MS', 500),
     maxTickAgeMs: positiveInteger(env, 'MARKET_DATA_MAX_TICK_AGE_MS', 1000),
     queueCapacity: positiveInteger(env, 'MARKET_DATA_QUEUE_CAPACITY', 1000),
     consumerTimeoutMs: phaseTimeout('MARKET_DATA_CONSUMER_TIMEOUT_MS', 100),
@@ -237,5 +243,9 @@ export function parseMarketDataConfig(
       historyRetentionMs,
     ),
     maxAlertRules: boundedInteger('MARKET_DATA_MAX_ALERT_RULES', 20, 1, 100),
+    recoveryTimeoutMs: boundedInteger('MARKET_DATA_RECOVERY_TIMEOUT_MS', 10000, 100, 120000),
+    recoveryMaxTicks: boundedInteger('MARKET_DATA_RECOVERY_MAX_TICKS', 100000, 1, 1000000),
+    recoveryMaxGapMs: boundedInteger('MARKET_DATA_RECOVERY_MAX_GAP_MS', 3600000, 1000, 86400000),
+    historyPageSize: boundedInteger('MARKET_DATA_HISTORY_PAGE_SIZE', 1000, 1, 10000),
   });
 }

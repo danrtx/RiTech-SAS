@@ -21,6 +21,8 @@ export type TickInvalidationReason =
 export interface TickDeliveryContext {
   /** Un consumidor asíncrono debe comprobarla antes de publicar o modificar estado. */
   readonly signal: AbortSignal;
+  readonly recovery?: boolean;
+  readonly restoreAnalysis?: boolean;
 }
 
 export interface TickConsumer {

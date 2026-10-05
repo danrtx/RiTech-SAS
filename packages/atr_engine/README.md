@@ -1,6 +1,6 @@
 # Motor ATR de un minuto
 
-Biblioteca Dart pura: transforma ticks en velas cerradas UTC, calcula ATR Wilder y publica resultados/alertas mediante streams broadcast. La integración con `backend/` (NestJS) y `frontend_mobile/` (Flutter) está pendiente; el ejemplo usa datos sintéticos. No conecta Flutter a Redis.
+Biblioteca Dart pura: transforma ticks en velas cerradas UTC, calcula ATR Wilder y publica resultados/alertas mediante streams broadcast. El cálculo operativo del proyecto está implementado en `backend/src/modules/atr/` con Redis; comparte este fixture de referencia y Flutter consume sus eventos Socket.IO. Este paquete se conserva para uso independiente y paridad de lógica; su ejemplo usa datos sintéticos. No conecta Flutter a Redis.
 
 ## Ejecutar y verificar
 

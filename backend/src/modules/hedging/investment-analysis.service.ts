@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import type { MarketReference } from '../market-data/market-reference';
 
 export type ThresholdBasis = 'REFERENCE' | 'INVESTMENT';
 export type InvestmentSignal = 'MONITOR' | 'REVIEW_GAIN' | 'REVIEW_RISK';
 
 export interface InvestmentMetrics {
-  readonly model: 'SIMPLE_2X_PROXY';
+  readonly model: 'SIMPLE_2X';
   readonly leverage: 2;
   readonly referenceChangePercent: number;
   readonly changePercent: number;
-  /** Capital de referencia para la ventana, no posición ni resultado contable. */
+  /** Capital en la referencia declarada; modelo académico, sin comisiones. */
   readonly investedAmount: number | null;
   readonly estimatedPnL: number | null;
   readonly estimatedValue: number | null;
@@ -31,12 +32,16 @@ export type AnalysisStatus =
   | 'READY';
 
 export interface InvestmentUpdate {
+  readonly marketReference?: MarketReference;
   readonly schemaVersion: 1;
   readonly ruleId: string;
   readonly symbol: string;
   readonly feed: string;
   readonly simulated: boolean;
-  readonly windowMs: number;
+  readonly windowMs?: number;
+  readonly referenceMode?: 'WINDOW' | 'ENTRY';
+  readonly referencePrice?: number;
+  readonly referenceTimeMs?: number;
   readonly status: AnalysisStatus;
   readonly evaluatedAtMs: number;
   readonly validUntilMs?: number;
@@ -83,7 +88,7 @@ export class InvestmentAnalysisService {
           : 'neutral';
     return {
       investment: Object.freeze({
-        model: 'SIMPLE_2X_PROXY',
+        model: 'SIMPLE_2X',
         leverage: 2,
         referenceChangePercent,
         changePercent,

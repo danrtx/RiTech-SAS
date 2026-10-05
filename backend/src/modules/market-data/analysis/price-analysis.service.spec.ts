@@ -262,4 +262,83 @@ describe('Análisis de variación y alertas', () => {
       decision: { signal: 'REVIEW_RISK' },
     });
   });
+
+  it('conserva el capital y la referencia de entrada aunque cambie la ventana o se reconecte', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(BASE);
+    service.upsertRule('position', {
+      referenceMode: 'ENTRY',
+      entryPrice: 100,
+      entryTimeMs: BASE,
+      investedAmount: 10000,
+      thresholdBasis: 'INVESTMENT',
+      upPercent: 4,
+      downPercent: 4,
+      cooldownMs: 0,
+      enabled: true,
+    });
+    await tick(0, 102);
+    expect(service.listRules()[0].analysis).toMatchObject({
+      status: 'READY',
+      referenceMode: 'ENTRY',
+      referencePrice: 100,
+      investment: {
+        model: 'SIMPLE_2X',
+        changePercent: 4,
+        estimatedPnL: 400,
+        estimatedValue: 10400,
+      },
+    });
+    await tick(7200000, 98);
+    expect(service.listRules()[0].analysis).toMatchObject({
+      investment: {
+        changePercent: -4,
+        estimatedPnL: -400,
+        estimatedValue: 9600,
+      },
+    });
+    service.suspend('connection_unavailable');
+    expect(service.listRules()[0].analysis.status).toBe('UNAVAILABLE');
+    service.restore([normalizedTick(BASE + 7200000, 98)], false);
+    service.resume();
+    expect(service.listRules()[0].analysis).toMatchObject({
+      referencePrice: 100,
+      investment: { estimatedValue: 9600 },
+    });
+    expect(gateway.broadcastPriceAlert).toHaveBeenCalledTimes(2);
+    expect(gateway.broadcastInvestmentUpdate.mock.calls[0][0]).toMatchObject({
+      referenceMode: 'ENTRY',
+      referencePrice: 100,
+      referenceTimeMs: BASE,
+      marketReference: {
+        sourceSymbol: 'QQQ',
+        instrumentType: 'ETF_PROXY',
+        matchesRequiredIndex: false,
+      },
+    });
+  });
+
+  it('rechaza referencias de entrada incompletas, futuras o mezcladas con ventanas', () => {
+    jest.spyOn(Date, 'now').mockReturnValue(BASE);
+    const entry = {
+      ...defaultRule,
+      windowMs: undefined,
+      referenceMode: 'ENTRY' as const,
+      entryPrice: 100,
+      entryTimeMs: BASE,
+      investedAmount: 10000,
+    };
+    for (const invalid of [
+      { entryPrice: undefined },
+      { entryTimeMs: undefined },
+      { entryTimeMs: BASE + 1 },
+      { entryPrice: 0 },
+      { investedAmount: undefined },
+      { windowMs: 1000 },
+      { referenceMode: 'WINDOW' as const },
+    ])
+      expect(() =>
+        service.upsertRule('bad', { ...entry, ...invalid }),
+      ).toThrow();
+    expect(service.listRules()).toEqual([]);
+  });
 });

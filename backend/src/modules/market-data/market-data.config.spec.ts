@@ -200,6 +200,8 @@ describe('Configuración de market data', () => {
     ['MARKET_DATA_AUTH_TIMEOUT_MS', '10001'],
     ['MARKET_DATA_SUBSCRIBE_TIMEOUT_MS', '1ms'],
     ['MARKET_DATA_CLOSE_TIMEOUT_MS', '-1'],
+    ['MARKET_DATA_HEARTBEAT_MS', '2147483648'],
+    ['MARKET_DATA_HEARTBEAT_TIMEOUT_MS', '0'],
   ])('rechaza un timeout de conexión inválido en %s', (name, value) => {
     expect(() => parseMarketDataConfig({ [name]: value })).toThrow(name);
   });

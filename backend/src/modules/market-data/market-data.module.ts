@@ -1,3 +1,4 @@
+import { MockFeedService } from './mock-feed.service';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TelemetryModule } from '../telemetry/telemetry.module';
@@ -12,10 +13,18 @@ import { MarketDataController } from './market-data.controller';
 import { HedgingModule } from '../hedging/hedging.module';
 import { TwelveDataAdapter } from './adapters/twelve-data.adapter';
 import { MARKET_DATA_ADAPTER } from './ports/market-data-adapter.interface';
+import { AtrModule } from '../atr/atr.module';
+import { MarketAtrConsumer } from './market-atr.consumer';
+import { MarketHistoryClient } from './market-history.client';
+import { MarketRecoveryService } from './market-recovery.service';
+import { NdxHistoryService } from './ndx-history.service';
+import { NdxHistoryController } from './ndx-history.controller';
 
 @Module({
-  imports: [ConfigModule, TelemetryModule, HedgingModule],
+  imports: [ConfigModule, TelemetryModule, HedgingModule, AtrModule],
   providers: [
+    MockFeedService,
+    NdxHistoryService,
     AlpacaAdapter,
     TwelveDataAdapter,
     {
@@ -29,7 +38,10 @@ import { MARKET_DATA_ADAPTER } from './ports/market-data-adapter.interface';
     },
     MarketDataProcessor,
     PriceAnalysisService,
-    { provide: TICK_CONSUMER, useExisting: PriceAnalysisService },
+    MarketAtrConsumer,
+    MarketHistoryClient,
+    MarketRecoveryService,
+    { provide: TICK_CONSUMER, useExisting: MarketAtrConsumer },
     MarketDataWsClient,
     MarketDataService,
     {
@@ -39,7 +51,7 @@ import { MARKET_DATA_ADAPTER } from './ports/market-data-adapter.interface';
         config.getOrThrow<MarketDataConfig>('marketData'),
     },
   ],
-  controllers: [MarketDataController],
+  controllers: [MarketDataController, NdxHistoryController],
   exports: [MARKET_DATA_CONFIG, MarketDataWsClient, PriceAnalysisService],
 })
 export class MarketDataModule {}

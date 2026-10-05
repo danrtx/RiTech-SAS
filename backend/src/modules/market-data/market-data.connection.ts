@@ -13,6 +13,7 @@ export type MarketDataConnectionState =
 export type ConnectionFailureReason =
   | 'credentials_missing'
   | 'connect_timeout'
+  | 'heartbeat_timeout'
   | 'auth_timeout'
   | 'subscribe_timeout'
   | 'heartbeat_timeout'

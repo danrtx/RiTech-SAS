@@ -19,6 +19,7 @@ const ABORTED = Symbol('delivery_aborted');
 
 @Injectable()
 export class MarketDataProcessor {
+  onInvalidation?: (reason: TickInvalidationReason) => void;
   private readonly logger = new Logger(MarketDataProcessor.name);
   private live = false;
   private generation = 0;
@@ -139,7 +140,9 @@ export class MarketDataProcessor {
     this.logger.warn(
       JSON.stringify({ event: 'market_data_analysis_invalidated', reason }),
     );
+    this.onInvalidation?.(reason);
   }
+  pause(): void { this.live = false; }
 
   private async drain(): Promise<void> {
     if (this.running || this.blocked || this.invalidationFailed) return;
@@ -240,6 +243,12 @@ export class MarketDataProcessor {
   whenIdle(): Promise<void> {
     if (!this.running && !this.queue.length) return Promise.resolve();
     return new Promise((resolve) => this.idleWaiters.push(resolve));
+  }
+  async whenSettled(signal?: AbortSignal): Promise<void> {
+    while (this.running || this.blocked) {
+      signal?.throwIfAborted();
+      await new Promise(resolve => setTimeout(resolve, 1));
+    }
   }
 
   getStatus() {

@@ -27,4 +27,4 @@ flutter analyze
 dart format --output=none --set-exit-if-changed .
 ```
 
-El test de widgets simula pausa/reanudación y verifica que dispose retire el observer y detenga timers. No requiere iniciar un emulador. La integración con la app de `frontend_mobile/` y el backend NestJS está pendiente.
+El test de widgets simula pausa/reanudación y verifica que dispose retire el observer y detenga timers. No requiere iniciar un emulador. Este adaptador es opcional para cálculo local: `frontend_mobile/` consume el ATR operativo del backend NestJS mediante Socket.IO y no instancia este motor local.
