@@ -1,14 +1,15 @@
 export const MARKET_DATA_CONFIG = Symbol('MARKET_DATA_CONFIG');
 
-export type MarketDataFeed = 'iex' | 'test' | 'mock';
+export type MarketDataProvider = 'alpaca' | 'twelvedata';
+export type MarketDataFeed = 'iex' | 'test' | 'mock' | 'realtime';
 
 export interface MarketDataConfig {
   readonly enabled: boolean;
-  readonly provider: 'alpaca';
+  readonly provider: MarketDataProvider;
   readonly feed: MarketDataFeed;
   readonly wsUrl: string;
   readonly symbol: 'QQQ' | 'FAKEPACA';
-  readonly credentials?: Readonly<{ apiKey: string; apiSecret: string }>;
+  readonly credentials?: Readonly<{ apiKey: string; apiSecret?: string }>;
   readonly connectTimeoutMs: number;
   readonly authTimeoutMs: number;
   readonly subscribeTimeoutMs: number;
@@ -38,6 +39,7 @@ const ENDPOINTS: Record<MarketDataFeed, string> = {
   iex: 'wss://stream.data.alpaca.markets/v2/iex',
   test: 'wss://stream.data.alpaca.markets/v2/test',
   mock: 'ws://127.0.0.1:8765/v2/mock',
+  realtime: 'wss://ws.twelvedata.com/v1/quotes/price',
 };
 
 function invalid(variable: string, reason: string): never {
@@ -100,15 +102,24 @@ export function parseMarketDataConfig(
   }
   const enabled = enabledValue === 'true';
   const provider = env.MARKET_DATA_PROVIDER?.trim() || 'alpaca';
-  if (provider !== 'alpaca') invalid('MARKET_DATA_PROVIDER', 'debe ser alpaca');
+  if (provider !== 'alpaca' && provider !== 'twelvedata')
+    invalid('MARKET_DATA_PROVIDER', 'debe ser alpaca o twelvedata');
 
-  const feedValue = env.MARKET_DATA_FEED?.trim() || 'iex';
-  if (!['iex', 'test', 'mock'].includes(feedValue)) {
-    invalid('MARKET_DATA_FEED', 'debe ser iex, test o mock');
+  const allowedFeeds =
+    provider === 'twelvedata' ? ['realtime', 'mock'] : ['iex', 'test', 'mock'];
+  const feedValue =
+    env.MARKET_DATA_FEED?.trim() ||
+    (provider === 'twelvedata' ? 'realtime' : 'iex');
+  if (!allowedFeeds.includes(feedValue)) {
+    invalid('MARKET_DATA_FEED', 'no corresponde al proveedor seleccionado');
   }
   const feed = feedValue as MarketDataFeed;
-  if (enabled && env.NODE_ENV === 'production' && feed !== 'iex') {
-    invalid('MARKET_DATA_FEED', 'en producción debe ser iex');
+  if (
+    enabled &&
+    env.NODE_ENV === 'production' &&
+    (feed === 'test' || feed === 'mock')
+  ) {
+    invalid('MARKET_DATA_FEED', 'en producción debe usar un feed real');
   }
   const expectedSymbol = feed === 'test' ? 'FAKEPACA' : 'QQQ';
   const symbol = env.MARKET_DATA_SYMBOL?.trim() || expectedSymbol;
@@ -120,19 +131,20 @@ export function parseMarketDataConfig(
 
   let credentials: MarketDataConfig['credentials'];
   if (enabled && feed !== 'mock') {
-    const apiKey = env.ALPACA_API_KEY?.trim();
+    const keyVariable =
+      provider === 'twelvedata' ? 'TWELVE_DATA_API_KEY' : 'ALPACA_API_KEY';
+    const apiKey = env[keyVariable]?.trim();
     const apiSecret = env.ALPACA_API_SECRET?.trim();
     if (!apiKey)
-      invalid(
-        'ALPACA_API_KEY',
-        'es obligatoria con ingesta externa habilitada',
-      );
-    if (!apiSecret)
+      invalid(keyVariable, 'es obligatoria con ingesta externa habilitada');
+    if (provider === 'alpaca' && !apiSecret)
       invalid(
         'ALPACA_API_SECRET',
         'es obligatorio con ingesta externa habilitada',
       );
-    credentials = Object.freeze({ apiKey, apiSecret });
+    credentials = Object.freeze(
+      provider === 'twelvedata' ? { apiKey } : { apiKey, apiSecret },
+    );
   }
 
   const reconnectBaseMs = positiveInteger(
@@ -196,6 +208,11 @@ export function parseMarketDataConfig(
     closeTimeoutMs: phaseTimeout('MARKET_DATA_CLOSE_TIMEOUT_MS', 1000),
     reconnectBaseMs,
     reconnectMaxMs,
+    heartbeatMs: phaseTimeout(
+      'MARKET_DATA_HEARTBEAT_MS',
+      provider === 'twelvedata' ? 10000 : 15000,
+    ),
+    heartbeatTimeoutMs: phaseTimeout('MARKET_DATA_HEARTBEAT_TIMEOUT_MS', 10000),
     heartbeatMs: phaseTimeout('MARKET_DATA_HEARTBEAT_MS', 500),
     heartbeatTimeoutMs: phaseTimeout('MARKET_DATA_HEARTBEAT_TIMEOUT_MS', 500),
     maxTickAgeMs: positiveInteger(env, 'MARKET_DATA_MAX_TICK_AGE_MS', 1000),

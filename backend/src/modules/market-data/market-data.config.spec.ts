@@ -4,6 +4,61 @@ import { parseMarketDataConfig } from './market-data.config';
 describe('Configuración de market data', () => {
   afterEach(() => jest.restoreAllMocks());
 
+  it('selecciona Twelve Data con una sola clave y endpoint sin credenciales', () => {
+    const config = parseMarketDataConfig({
+      MARKET_DATA_PROVIDER: 'twelvedata',
+      MARKET_DATA_ENABLED: 'true',
+      TWELVE_DATA_API_KEY: 'sentinel-key',
+      ALPACA_API_SECRET: 'unused-secret',
+    });
+    expect(config).toMatchObject({
+      provider: 'twelvedata',
+      feed: 'realtime',
+      symbol: 'QQQ',
+      wsUrl: 'wss://ws.twelvedata.com/v1/quotes/price',
+      credentials: { apiKey: 'sentinel-key' },
+      heartbeatMs: 10000,
+    });
+    expect(config.credentials).not.toHaveProperty('apiSecret');
+    expect(config.wsUrl).not.toContain('sentinel-key');
+    expect(() =>
+      parseMarketDataConfig({
+        MARKET_DATA_PROVIDER: 'twelvedata',
+        MARKET_DATA_ENABLED: 'true',
+      }),
+    ).toThrow('TWELVE_DATA_API_KEY');
+  });
+
+  it.each(['iex', 'test'])(
+    'rechaza el feed Alpaca %s con Twelve Data',
+    (feed) => {
+      expect(() =>
+        parseMarketDataConfig({
+          MARKET_DATA_PROVIDER: 'twelvedata',
+          MARKET_DATA_FEED: feed,
+        }),
+      ).toThrow('MARKET_DATA_FEED');
+    },
+  );
+
+  it('no acepta URLs externas con clave ni reutiliza credenciales reales en mock Twelve Data', () => {
+    expect(() =>
+      parseMarketDataConfig({
+        MARKET_DATA_PROVIDER: 'twelvedata',
+        MARKET_DATA_WS_URL:
+          'wss://ws.twelvedata.com/v1/quotes/price?apikey=sentinel-key',
+      }),
+    ).toThrow('MARKET_DATA_WS_URL');
+    const config = parseMarketDataConfig({
+      MARKET_DATA_PROVIDER: 'twelvedata',
+      MARKET_DATA_FEED: 'mock',
+      MARKET_DATA_ENABLED: 'true',
+      TWELVE_DATA_API_KEY: 'sentinel-key',
+    });
+    expect(config.credentials).toBeUndefined();
+    expect(JSON.stringify(config)).not.toContain('sentinel-key');
+  });
+
   it('arranca deshabilitada, sin claves, con QQQ y el endpoint IEX', () => {
     const config = parseMarketDataConfig({});
     expect(config).toMatchObject({

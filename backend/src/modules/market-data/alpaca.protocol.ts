@@ -10,8 +10,4 @@ export interface AlpacaDataMessage {
   readonly [field: string]: unknown;
 }
 
-export interface AlpacaDataBatch {
-  readonly messages: readonly AlpacaDataMessage[];
-  readonly receivedAtMs: number;
-  readonly receivedAtMonotonicMs: number;
-}
+export type { MarketDataBatch as AlpacaDataBatch } from './market-data.protocol';

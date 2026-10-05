@@ -1,8 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { performance } from 'node:perf_hooks';
 import { MARKET_DATA_CONFIG, MarketDataConfig } from './market-data.config';
-import { AlpacaDataBatch } from './alpaca.protocol';
-import { AlpacaAdapter } from './adapters/alpaca.adapter';
+import { MarketDataBatch } from './market-data.protocol';
+import {
+  MARKET_DATA_ADAPTER,
+  MarketDataAdapter,
+} from './ports/market-data-adapter.interface';
 import { MarketTick } from './dto/market-tick.dto';
 import {
   TICK_CONSUMER,
@@ -51,7 +54,7 @@ export class MarketDataProcessor {
 
   constructor(
     @Inject(MARKET_DATA_CONFIG) private readonly config: MarketDataConfig,
-    private readonly adapter: AlpacaAdapter,
+    @Inject(MARKET_DATA_ADAPTER) private readonly adapter: MarketDataAdapter,
     @Inject(TICK_CONSUMER) private readonly consumer: TickConsumer,
   ) {}
 
@@ -61,7 +64,7 @@ export class MarketDataProcessor {
     if (!live) this.invalidate('connection_unavailable');
   }
 
-  accept(batch: AlpacaDataBatch): void {
+  accept(batch: MarketDataBatch): void {
     if (!this.live) return;
     for (const message of batch.messages) {
       this.counters.received++;
