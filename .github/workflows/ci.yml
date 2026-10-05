@@ -53,12 +53,22 @@ jobs:
           REDIS_TEST_PASSWORD: ''
           QA_REPORT_PATH: ${{ runner.temp }}/streaming_metrics.json
 
+      - name: QA epica 01 sobre conector Alpaca simulado
+        run: npm run qa:epic01 -- --strict-continuity
+        env:
+          REDIS_TEST_HOST: 127.0.0.1
+          REDIS_TEST_PORT: '6379'
+          REDIS_TEST_PASSWORD: ''
+          QA_EPIC01_REPORT_PATH: ${{ runner.temp }}/epic01_metrics.json
+
       - name: Evidencia de streaming
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: streaming-metrics
-          path: ${{ runner.temp }}/streaming_metrics.json
+          path: |
+            ${{ runner.temp }}/streaming_metrics.json
+            ${{ runner.temp }}/epic01_metrics.json
           if-no-files-found: warn
 
   mobile:

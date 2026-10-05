@@ -55,6 +55,7 @@ void main() {
     final transport = FakeTransport();
     final client = TelemetryWebSocketClient(transport: transport);
     final notifier = TelemetryNotifier(client);
+    notifier.switchSymbol('NDX');
     transport.receive('connect');
     transport.receive('telemetry_tick', {'symbol': 'NDX', 'price': 100});
     transport.receive('atr_result',
@@ -72,6 +73,10 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(notifier.state.lastTick, isNull);
     expect(notifier.state.lastAtr?['status'], 'insufficientData');
+    transport.receive('disconnect');
+    await Future<void>.delayed(Duration.zero);
+    expect(notifier.state.lastAtr, isNull);
+    expect(notifier.state.lastTick, isNull);
     notifier.dispose();
     client.dispose();
     transport.receive('telemetry_tick', {'symbol': 'QQQ', 'price': 300});

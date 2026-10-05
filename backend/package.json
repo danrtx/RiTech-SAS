@@ -20,6 +20,7 @@
     "test:integration": "node scripts/run-integration.cjs",
     "mock:feed": "ts-node scripts/mock-feed.ts",
     "smoke:local": "ts-node scripts/smoke-local.ts",
+    "qa:epic01": "ts-node scripts/qa-epic01.ts",
     "market-data:mock": "ts-node src/modules/market-data/testing/run-alpaca-mock.ts",
     "market-data:probe": "ts-node src/modules/market-data/testing/probe-market-data.ts"
   },

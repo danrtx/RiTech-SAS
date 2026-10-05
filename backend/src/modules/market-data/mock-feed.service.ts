@@ -17,6 +17,10 @@ export class MockFeedService implements OnModuleInit, OnModuleDestroy {
   onModuleInit() {
     const url = this.config.get<string>("MOCK_FEED_URL");
     if (!url) return;
+    if (this.config.get<boolean>("marketData.enabled", false))
+      throw new Error(
+        "Use only one source: MARKET_DATA_ENABLED or MOCK_FEED_URL",
+      );
     const parsed = new URL(url);
     if (
       this.config.get<string>("NODE_ENV") === "production" ||

@@ -25,11 +25,11 @@ local capacity = tonumber(ARGV[3])
 if redis.call('HEXISTS', KEYS[2], tick.id) == 1 then return 'duplicate' end
 if tick.eventTime < cutoff then return 'expired' end
 local closed = tonumber(redis.call('HGET', KEYS[3], 'closed') or '0')
-if tick.eventTime < closed then return 'late' end
+if ARGV[5] ~= 'recovery' and tick.eventTime < closed then return 'late' end
 local previous = tonumber(redis.call('HGET', KEYS[3], 'last') or '0')
-if tick.eventTime < previous then return 'outOfOrder' end
+if ARGV[5] ~= 'recovery' and tick.eventTime < previous then return 'outOfOrder' end
 local sequence = redis.call('HINCRBY', KEYS[3], 'sequence', 1)
-redis.call('HSET', KEYS[3], 'last', string.format('%.0f', tick.eventTime))
+redis.call('HSET', KEYS[3], 'last', string.format('%.0f', math.max(previous, tick.eventTime)))
 -- Retain the original JSON number precision; Lua cjson re-encoding rounds doubles.
 redis.call('HSET', KEYS[2], tick.id, '{"sequence":' .. string.format('%.0f', sequence) .. ',"tick":' .. ARGV[1] .. '}')
 redis.call('ZADD', KEYS[1], tick.eventTime, tick.id)

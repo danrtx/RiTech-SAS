@@ -12,12 +12,12 @@ void main() {
   });
 
   group('TelemetryState', () {
-    test('inicia desconectado con NDX como simbolo activo', () {
+    test('inicia desconectado con QQQ como simbolo activo', () {
       const state =
           TelemetryState(connectionStatus: WebSocketStatus.disconnected);
 
       expect(state.connectionStatus, WebSocketStatus.disconnected);
-      expect(state.activeSymbol, 'NDX');
+      expect(state.activeSymbol, 'QQQ');
       expect(state.lastTick, isNull);
     });
 
@@ -31,7 +31,7 @@ void main() {
 
       expect(updated.connectionStatus, WebSocketStatus.connected);
       expect(updated.lastTick, {'price': 100.5});
-      expect(updated.activeSymbol, 'NDX');
+      expect(updated.activeSymbol, 'QQQ');
     });
   });
 

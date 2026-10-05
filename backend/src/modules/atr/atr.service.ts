@@ -81,6 +81,36 @@ export class AtrService implements OnApplicationBootstrap, OnModuleDestroy {
       ticks: this.cache.metrics,
     };
   }
+  invalidateSymbol(symbol: string, boundary?: number) {
+    if (!this.states.has(symbol)) return;
+    this.generation++;
+    const state = new SymbolAtr(this.config.options);
+    state.cursor = boundary;
+    this.states.set(symbol, state);
+    this.metrics.resets++;
+    this.publish({
+      symbol,
+      minute: minuteStart(this.clock.now()),
+      emittedAt: this.clock.now(),
+      status: "gap",
+      atr: null,
+      baseline: null,
+      alert: false,
+    });
+  }
+  suspendSymbol(symbol: string) {
+    this.generation++;
+    this.publish({ symbol, minute: minuteStart(this.clock.now()), emittedAt: this.clock.now(),
+      status: 'gap', atr: null, baseline: null, alert: false });
+  }
+  async rebuildRecovered(until?: number): Promise<void> {
+    if (this.busy) throw new Error('ATR snapshot still running');
+    for (const symbol of this.config.options.symbols)
+      this.states.set(symbol, new SymbolAtr(this.config.options));
+    const failures = this.metrics.failures;
+    await this.runCycle(true, until);
+    if (this.metrics.failures !== failures) throw new Error('recovery_atr_cache_failure');
+  }
   private publish(result: AtrResult) {
     this.latest.set(result.symbol, result);
     this.gateway.broadcastAtr(result);
@@ -91,8 +121,8 @@ export class AtrService implements OnApplicationBootstrap, OnModuleDestroy {
     if (missing) this.logger.warn({ event: "atrGap", symbol, missing, reset });
     if (reset) this.metrics.resets++;
   }
-  async runCycle(): Promise<void> {
-    if (this.busy || this.ingestion.recovering) {
+  async runCycle(suppressAlerts = false, untilOverride?: number): Promise<void> {
+    if (this.busy || (this.ingestion.recovering && !suppressAlerts)) {
       this.metrics.skipped++;
       return;
     }
@@ -101,7 +131,7 @@ export class AtrService implements OnApplicationBootstrap, OnModuleDestroy {
     const recoveryVersion = this.ingestion.version;
     const started = this.clock.monotonic();
     const now = this.clock.now();
-    const until = minuteStart(now);
+    const until = minuteStart(Math.min(now, untilOverride ?? now));
     this.metrics.cycles++;
     try {
       await Promise.all(
@@ -135,10 +165,14 @@ export class AtrService implements OnApplicationBootstrap, OnModuleDestroy {
             const candles = aggregate(snapshot.ticks, from, until);
             if (!candles.length)
               this.logger.warn({ event: "atrEmptyCache", symbol });
+            let recoveredResult: AtrResult | undefined;
             for (const candle of candles) {
               this.gap(symbol, state, candle.minute);
-              this.publish(state.add(symbol, candle, now));
+              const result = state.add(symbol, candle, now);
+              if (suppressAlerts) recoveredResult = { ...result, alert: false };
+              else this.publish(result);
             }
+            if (recoveredResult) this.publish(recoveredResult);
             this.gap(symbol, state, until);
             if (
               !candles.length ||

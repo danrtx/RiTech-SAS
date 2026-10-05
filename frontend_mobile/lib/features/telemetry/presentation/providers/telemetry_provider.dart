@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/websocket_client.dart';
+import '../../../../core/config/app_config.dart';
 
 class TelemetryState {
   final WebSocketStatus connectionStatus;
@@ -11,7 +12,7 @@ class TelemetryState {
       {required this.connectionStatus,
       this.lastTick,
       this.lastAtr,
-      this.activeSymbol = 'NDX'});
+      this.activeSymbol = AppConfig.marketSymbol});
   TelemetryState copyWith(
           {WebSocketStatus? connectionStatus,
           Map<String, Object?>? lastTick,
@@ -38,7 +39,9 @@ class TelemetryNotifier extends StateNotifier<TelemetryState> {
       : super(const TelemetryState(
             connectionStatus: WebSocketStatus.disconnected)) {
     _subscriptions.add(_wsClient.statusStream.listen((status) {
-      state = state.copyWith(connectionStatus: status);
+      state = state.copyWith(
+          connectionStatus: status,
+          clearData: status != WebSocketStatus.connected);
     }));
     _subscriptions.add(_wsClient.messagesStream.listen((message) {
       if (message['symbol'] == state.activeSymbol) {

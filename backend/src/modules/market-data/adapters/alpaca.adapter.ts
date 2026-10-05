@@ -73,6 +73,7 @@ export class AlpacaAdapter {
   normalize(
     message: Readonly<Record<string, unknown>>,
     receivedAtMs: number,
+    historical = false,
   ): TradeResult {
     if (message.S !== this.config.symbol)
       return { ok: false, reason: 'symbol' };
@@ -106,7 +107,7 @@ export class AlpacaAdapter {
     if (!time || !Number.isSafeInteger(receivedAtMs))
       return { ok: false, reason: 'timestamp' };
     const age = receivedAtMs - time.ms;
-    if (age > this.config.maxTickAgeMs) return { ok: false, reason: 'stale' };
+    if (!historical && age > this.config.maxTickAgeMs) return { ok: false, reason: 'stale' };
     if (age < -this.config.futureToleranceMs)
       return { ok: false, reason: 'future' };
     return {

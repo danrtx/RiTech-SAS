@@ -1,4 +1,8 @@
 class AppConfig {
+  static const String marketSymbol = String.fromEnvironment(
+    'MARKET_SYMBOL',
+    defaultValue: 'QQQ',
+  );
   static const String appName = 'RiTech SAS - NASDAQ 100 Hedging';
 
   // Backend environment URLs (pointing to NestJS backend only)

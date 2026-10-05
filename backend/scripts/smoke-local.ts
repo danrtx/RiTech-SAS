@@ -21,6 +21,7 @@ async function main() {
   const minute = minuteStart(Date.now());
   process.env.TICK_KEY_PREFIX = prefix;
   process.env.ATR_SYMBOLS = "NDX";
+  process.env.MARKET_DATA_ENABLED = "false";
   process.env.MOCK_FEED_URL = await provider.start();
   for (let i = 40; i > 0; i--) {
     provider.publish({

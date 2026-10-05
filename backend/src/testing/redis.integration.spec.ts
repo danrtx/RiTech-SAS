@@ -18,6 +18,10 @@ import { RedisCacheService } from "../modules/redis-cache/redis-cache.service";
 import { TelemetryGateway } from "../modules/telemetry/telemetry.gateway";
 import { TelemetryService } from "../modules/telemetry/telemetry.service";
 import { MockProvider, percentiles, waitUntil } from "./mock-provider";
+import { MarketAtrConsumer } from "../modules/market-data/market-atr.consumer";
+import { parseMarketDataConfig } from "../modules/market-data/market-data.config";
+import { PriceAnalysisService } from "../modules/market-data/analysis/price-analysis.service";
+import { normalizedTick } from "../modules/market-data/testing/market-tick.fixture";
 
 const integration =
   process.env.RUN_REDIS_TESTS === "1" ? describe : describe.skip;
@@ -185,6 +189,99 @@ integration("real Redis and WebSocket integration", () => {
     }
     expect(gateway.broadcastTick).toHaveBeenCalledTimes(240);
     expect(engine.metrics.failures).toBe(0);
+  });
+  it("connects normalized market ticks to Redis and ATR, compares all reference values, and resets safely without backfill", async () => {
+    const rows = readFileSync(
+      join(
+        process.cwd(),
+        "../packages/atr_engine/test/fixtures/atr_reference.csv",
+      ),
+      "utf8",
+    )
+      .trim()
+      .split(/\r?\n/)
+      .slice(1)
+      .map((line) => line.split(","));
+    const engine = new AtrService(
+      config,
+      cache,
+      clock,
+      gateway as unknown as TelemetryGateway,
+      ingestion,
+    );
+    const analysis = {
+      consume: jest.fn().mockResolvedValue(undefined),
+      invalidate: jest.fn(),
+      suspend: jest.fn(),
+    };
+    const consumer = new MarketAtrConsumer(
+      parseMarketDataConfig({
+        MARKET_DATA_ENABLED: "true",
+        MARKET_DATA_FEED: "mock",
+      }),
+      config,
+      cache,
+      engine,
+      analysis as unknown as PriceAnalysisService,
+      ingestion,
+      clock,
+    );
+    consumer.onModuleInit();
+    current = start - MINUTE_MS;
+    await consumer.consume(normalizedTick(current, 100, "prime"));
+    gateway.broadcastAtr.mockClear();
+    for (let index = 0; index < rows.length; index++) {
+      for (let field = 1; field <= 4; field++) {
+        current = Date.parse(rows[index][0]) + field * 10000;
+        await consumer.consume(
+          normalizedTick(current, +rows[index][field], `${index}:${field}`),
+        );
+      }
+      current = Date.parse(rows[index][0]) + MINUTE_MS;
+      await engine.runCycle();
+    }
+    const results = gateway.broadcastAtr.mock.calls
+      .map((call) => call[0])
+      .filter((result) => result.symbol === "QQQ");
+    expect(results).toHaveLength(60);
+    for (let i = 0; i < rows.length; i++) {
+      if (!rows[i][6]) expect(results[i].atr).toBeNull();
+      else
+        expect(Math.abs(results[i].atr - +rows[i][6])).toBeLessThanOrEqual(
+          1e-6,
+        );
+    }
+    // A historical repair can fill already sealed minutes without replaying alerts.
+    const saved = await cache.recoveryWindow("QQQ");
+    expect(saved).toHaveLength(241);
+    const lastMinute = await cache.readTicks("QQQ", current - MINUTE_MS, current);
+    for (const value of lastMinute.ticks) {
+      await cache.getClient().zrem(cache.keys("QQQ")[0], value.id);
+      await cache.getClient().hdel(cache.keys("QQQ")[1], value.id);
+    }
+    consumer.invalidate("connection_unavailable");
+    const signal = new AbortController().signal;
+    for (const source of saved.filter(t => t.eventTimeMs >= current - MINUTE_MS))
+      await consumer.consume(source, { signal, recovery: true });
+    gateway.broadcastAtr.mockClear();
+    await engine.rebuildRecovered(current);
+    expect(ingestion.recovering).toBe(true);
+    const rebuilt = gateway.broadcastAtr.mock.calls.map(call => call[0]).filter(r => r.symbol === "QQQ");
+    expect(rebuilt).toHaveLength(1);
+    expect(rebuilt[0].alert).toBe(false);
+    expect(Math.abs(rebuilt[0].atr - +rows.at(-1)![6])).toBeLessThanOrEqual(1e-6);
+    expect(await cache.recoveryWindow("QQQ")).toHaveLength(saved.length);
+    const before = await cache.getClient().hlen(cache.keys("QQQ")[1]);
+    consumer.invalidate("connection_unavailable");
+    expect(
+      engine.snapshot().results.find((r) => r.symbol === "QQQ")?.status,
+    ).toBe("gap");
+    await consumer.consume(normalizedTick(current, 101, "after-cut"));
+    expect(await cache.getClient().hlen(cache.keys("QQQ")[1])).toBe(before + 1);
+    expect(await cache.readTicks("QQQ", start, current)).toMatchObject({
+      coverageStart: start,
+    });
+    engine.stop();
   });
   it("recovers repeated disconnects under load without losing window or duplicating accepted ticks", async () => {
     current = minuteStart(Date.now());

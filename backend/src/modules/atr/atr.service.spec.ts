@@ -119,4 +119,26 @@ describe("ATR lifecycle and scheduler", () => {
     await engine.runCycle();
     expect(cache.readTicks).toHaveBeenCalledTimes(2);
   });
+  it("retires a previous signal and ignores in-flight reads when the source loses continuity", async () => {
+    let resolve!: (value: TickSnapshot) => void;
+    cache.readTicks.mockImplementation((symbol: string) =>
+      symbol === "QQQ"
+        ? new Promise<TickSnapshot>((r) => {
+            resolve = r;
+          })
+        : Promise.resolve({ ticks: [] }),
+    );
+    const cycle = engine.runCycle();
+    engine.invalidateSymbol("QQQ", start + MINUTE_MS);
+    resolve({ ticks: [] });
+    await cycle;
+    expect(
+      engine.snapshot().results.find((r) => r.symbol === "QQQ"),
+    ).toMatchObject({ status: "gap", atr: null, alert: false });
+    cache.readTicks.mockClear();
+    await engine.runCycle();
+    expect(cache.readTicks.mock.calls.some((call) => call[0] === "QQQ")).toBe(
+      false,
+    );
+  });
 });

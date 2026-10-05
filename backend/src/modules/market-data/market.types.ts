@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { MarketTick } from './dto/market-tick.dto';
 
 export const MINUTE_MS = 60_000;
 export const minuteStart = (timestamp: number): number =>
@@ -15,6 +16,7 @@ export class MarketClock {
 }
 
 export interface Tick {
+  source?: MarketTick;
   id: string;
   symbol: string;
   price: number;
@@ -47,6 +49,7 @@ export function validateTick(
   value: unknown,
   now: number,
   symbols: readonly string[],
+  futureToleranceMs = 0,
 ): TickRejection | null {
   if (typeof value !== "object" || value === null) return "invalidTick";
   const tick = value as Partial<Tick>;
@@ -73,9 +76,10 @@ export function validateTick(
   if (
     !Number.isSafeInteger(tick.eventTime) ||
     tick.eventTime! < 0 ||
-    tick.eventTime! > now ||
+    tick.eventTime! > now + futureToleranceMs ||
     !Number.isSafeInteger(tick.receivedAt) ||
-    tick.receivedAt! < tick.eventTime! ||
+    tick.receivedAt! < 0 ||
+    tick.receivedAt! + futureToleranceMs < tick.eventTime! ||
     tick.receivedAt! > now
   ) {
     return "invalidTimestamp";
