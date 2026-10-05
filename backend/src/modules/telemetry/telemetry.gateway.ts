@@ -12,6 +12,11 @@ import { Logger, UsePipes, ValidationPipe } from "@nestjs/common";
 import { IsString, Matches } from "class-validator";
 import { AtrResult, MarketClock, Tick } from "../market-data/market.types";
 import { AtrConfig } from "../atr/atr.config";
+import type { MarketTick } from '../market-data/dto/market-tick.dto';
+import type { PriceAlert } from '../market-data/dto/price-alert.dto';
+import type { TickInvalidationReason } from '../market-data/ports/tick-consumer.interface';
+import type { MarketDataFeed } from '../market-data/market-data.config';
+import type { InvestmentUpdate } from '../hedging/investment-analysis.service';
 
 export class TelemetrySubscriptionDto {
   @IsString()
@@ -107,5 +112,32 @@ export class TelemetryGateway
       this.server
         ?.to(`symbol:${result.symbol}`)
         .emit("volatility_alert", result);
+  }
+
+  broadcastMarketTick(tick: MarketTick): void {
+    this.server.to(`symbol:${tick.symbol}`).emit('telemetry_tick', {
+      ...tick,
+      timestamp: tick.eventTime,
+      emittedAtMs: Date.now(),
+    });
+  }
+
+  broadcastPriceAlert(alert: PriceAlert): void {
+    this.server.to(`symbol:${alert.symbol}`).emit('price_alert', alert);
+  }
+
+  broadcastInvestmentUpdate(update: InvestmentUpdate): void {
+    this.server.to(`symbol:${update.symbol}`).emit('investment_update', update);
+  }
+
+  broadcastMarketDataQuality(event: {
+    symbol: string;
+    feed: MarketDataFeed;
+    reason: TickInvalidationReason;
+    occurredAtMs: number;
+  }): void {
+    this.server
+      ?.to(`symbol:${event.symbol}`)
+      .emit('market_data_quality', event);
   }
 }
