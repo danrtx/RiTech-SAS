@@ -1,8 +1,5 @@
 // Datos sintéticos: no representan cotizaciones actuales ni credenciales reales.
-export const MOCK_ALPACA_CREDENTIALS = Object.freeze({
-  key: 'mock-api-key',
-  secret: 'mock-api-secret',
-});
+export { MOCK_ALPACA_CREDENTIALS } from '../alpaca.protocol';
 
 export interface AlpacaTradeFixture {
   T: 't';

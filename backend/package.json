@@ -17,7 +17,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "market-data:mock": "ts-node src/modules/market-data/testing/run-alpaca-mock.ts"
+    "market-data:mock": "ts-node src/modules/market-data/testing/run-alpaca-mock.ts",
+    "market-data:probe": "ts-node src/modules/market-data/testing/probe-market-data.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

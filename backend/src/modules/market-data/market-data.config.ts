@@ -9,6 +9,10 @@ export interface MarketDataConfig {
   readonly wsUrl: string;
   readonly symbol: 'QQQ' | 'FAKEPACA';
   readonly credentials?: Readonly<{ apiKey: string; apiSecret: string }>;
+  readonly connectTimeoutMs: number;
+  readonly authTimeoutMs: number;
+  readonly subscribeTimeoutMs: number;
+  readonly closeTimeoutMs: number;
   readonly reconnectBaseMs: number;
   readonly reconnectMaxMs: number;
   readonly heartbeatMs: number;
@@ -137,6 +141,20 @@ export function parseMarketDataConfig(
       'debe ser mayor o igual a la espera base',
     );
   }
+  const authTimeoutMs = positiveInteger(
+    env,
+    'MARKET_DATA_AUTH_TIMEOUT_MS',
+    5000,
+  );
+  if (authTimeoutMs > 10000) {
+    invalid('MARKET_DATA_AUTH_TIMEOUT_MS', 'no debe superar 10000 ms');
+  }
+  const phaseTimeout = (name: string, fallback: number): number => {
+    const value = positiveInteger(env, name, fallback);
+    if (value > 2147483647)
+      invalid(name, 'excede el rango de temporizadores de Node.js');
+    return value;
+  };
 
   return Object.freeze({
     enabled,
@@ -145,6 +163,10 @@ export function parseMarketDataConfig(
     wsUrl,
     symbol,
     credentials,
+    connectTimeoutMs: phaseTimeout('MARKET_DATA_CONNECT_TIMEOUT_MS', 10000),
+    authTimeoutMs,
+    subscribeTimeoutMs: phaseTimeout('MARKET_DATA_SUBSCRIBE_TIMEOUT_MS', 5000),
+    closeTimeoutMs: phaseTimeout('MARKET_DATA_CLOSE_TIMEOUT_MS', 1000),
     reconnectBaseMs,
     reconnectMaxMs,
     heartbeatMs: positiveInteger(env, 'MARKET_DATA_HEARTBEAT_MS', 15000),
