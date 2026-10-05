@@ -10,6 +10,10 @@ import { MarketDataModule } from './market-data.module';
 import { parseMarketDataConfig } from './market-data.config';
 import { MarketDataWsClient } from './market-data-ws.client';
 import { MarketDataProcessor } from './market-data.processor';
+import { MarketDataService } from './market-data.service';
+import { MarketTick } from './dto/market-tick.dto';
+import { Tick } from './market.types';
+import { waitUntil } from '../../testing/mock-provider';
 import { AlpacaMockServer } from './testing/alpaca-mock.server';
 import { createTradeFixture } from './testing/alpaca.fixtures';
 import { TEST_TIME_MS as BASE } from './testing/market-tick.fixture';
@@ -54,12 +58,21 @@ function dashboard(socket: WebSocket) {
 }
 
 describe('Mock → backend → historial/reglas HTTP → alerta Socket.IO', () => {
-  it('emite una alerta real al dashboard al cruzar el umbral y reinicia el historial ante un corte', async () => {
+  it('emite alertas y conserva el historial durante la recuperación de un corte', async () => {
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     const mock = new AlpacaMockServer();
     const url = await mock.start();
-    const redis = { setTick: jest.fn(), pushATRWindow: jest.fn() };
+    const persisted = new Map<string, MarketTick>();
+    const redis = {
+      appendTick: jest.fn(async (tick: Tick) => {
+        if (persisted.has(tick.id)) return { accepted: false, reason: 'duplicate' };
+        persisted.set(tick.id, tick.source!); return { accepted: true };
+      }),
+      recoveryWindow: jest.fn(async () => [...persisted.values()].sort((a, b) => a.eventTimeMs - b.eventTimeMs)),
+      advanceCoverage: jest.fn().mockResolvedValue(undefined),
+      readTicks: jest.fn().mockResolvedValue({ ticks: [] }),
+    };
     const module = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({
@@ -86,6 +99,7 @@ describe('Mock → backend → historial/reglas HTTP → alerta Socket.IO', () =
     let socket: WebSocket | undefined;
     try {
       await app.listen(0, '127.0.0.1');
+      await waitUntil(() => app.get(MarketDataService).getStatus().continuity?.state === 'LIVE');
       const http = await app.getUrl();
       const put = await fetch(`${http}/market-data/rules/qqq-1s`, {
         method: 'PUT',
@@ -222,7 +236,7 @@ describe('Mock → backend → historial/reglas HTTP → alerta Socket.IO', () =
         points: 3,
         samples: [{ eventTimeMs: BASE + 1100, price: 98 }],
       });
-      expect(redis.setTick).not.toHaveBeenCalled();
+      expect(redis.appendTick).toHaveBeenCalledTimes(3);
 
       const degraded = firstValueFrom(
         app.get(MarketDataWsClient).status$.pipe(
@@ -245,8 +259,9 @@ describe('Mock → backend → historial/reglas HTTP → alerta Socket.IO', () =
       expect(quality).toContain('connection_unavailable');
       expect(
         await (await fetch(`${http}/market-data/history`)).json(),
-      ).toMatchObject({ points: 0, samples: [] });
+      ).toMatchObject({ points: 3 });
       await recovered;
+      await waitUntil(() => app.get(MarketDataService).getStatus().continuity?.state === 'LIVE');
       expect(performance.now() - disconnectedAt).toBeLessThan(2000);
       expect(
         await (await fetch(`${http}/market-data/status`)).json(),
@@ -270,7 +285,7 @@ describe('Mock → backend → historial/reglas HTTP → alerta Socket.IO', () =
       await app.get(MarketDataProcessor).whenIdle();
       expect(
         await (await fetch(`${http}/market-data/rules`)).json(),
-      ).toMatchObject([{ analysis: { status: 'WARMING_UP' } }]);
+      ).toMatchObject([{ analysis: { status: 'READY' } }]);
       expect(
         (await fetch(`${http}/market-data/rules/qqq-1s`, { method: 'DELETE' }))
           .status,

@@ -19,7 +19,10 @@ describe('Arranque de MarketDataModule', () => {
   });
   afterEach(() => jest.restoreAllMocks());
   it('resuelve la configuración deshabilitada sin conectar al proveedor ni Redis', async () => {
-    const redis = { setTick: jest.fn(), pushATRWindow: jest.fn() };
+    const redis = {
+      appendTick: jest.fn(),
+      readTicks: jest.fn().mockResolvedValue({ ticks: [] }),
+    };
     const module = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({
@@ -41,7 +44,7 @@ describe('Arranque de MarketDataModule', () => {
       expect(config.enabled).toBe(false);
       expect(config.credentials).toBeUndefined();
       expect(app.get(MarketDataWsClient).getStatus().state).toBe('DISABLED');
-      expect(redis.setTick).not.toHaveBeenCalled();
+      expect(redis.appendTick).not.toHaveBeenCalled();
     } finally {
       await app.close();
     }

@@ -5,12 +5,14 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import { Subscription } from 'rxjs';
 import { performance } from 'node:perf_hooks';
 import { MarketDataWsClient } from './market-data-ws.client';
 import { MarketDataProcessor } from './market-data.processor';
 import { MARKET_DATA_CONFIG, MarketDataConfig } from './market-data.config';
+import { MarketRecoveryService } from './market-recovery.service';
 
 @Injectable()
 export class MarketDataService
@@ -31,12 +33,16 @@ export class MarketDataService
     private readonly client: MarketDataWsClient,
     private readonly processor: MarketDataProcessor,
     @Inject(MARKET_DATA_CONFIG) private readonly config: MarketDataConfig,
+    @Optional() private readonly recovery?: MarketRecoveryService,
   ) {}
 
   onModuleInit(): void {
     this.subscriptions.add(
       this.client.status$.subscribe((status) => {
-        this.processor.setLive(status.state === 'LIVE');
+        if (this.recovery) {
+          if (status.state === 'LIVE') this.recovery.live();
+          else if (['DEGRADED', 'FAILED', 'STOPPED'].includes(status.state)) this.recovery.disconnected();
+        } else this.processor.setLive(status.state === 'LIVE');
         if (status.state === 'LIVE') {
           if (this.degradedAtMonotonicMs !== undefined) {
             this.reconnects++;
@@ -60,7 +66,7 @@ export class MarketDataService
       }),
     );
     this.subscriptions.add(
-      this.client.data$.subscribe((batch) => this.processor.accept(batch)),
+      this.client.data$.subscribe((batch) => this.recovery ? this.recovery.accept(batch) : this.processor.accept(batch)),
     );
   }
 
@@ -115,6 +121,7 @@ export class MarketDataService
       lastRecoveryDurationMs: this.lastRecoveryDurationMs,
       reconnectScheduled: !!this.reconnectTimer,
       reconnecting: this.reconnecting,
+      continuity: this.recovery?.getStatus(),
     };
   }
 
@@ -122,6 +129,7 @@ export class MarketDataService
     this.stopping = true;
     this.clearReconnectTimer();
     this.subscriptions.unsubscribe();
+    await this.recovery?.onModuleDestroy();
     this.processor.setLive(false);
     this.processor.invalidate('shutdown');
     await this.processor.whenIdle();
