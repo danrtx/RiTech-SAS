@@ -45,6 +45,8 @@ export class MarketDataWsClient implements OnModuleDestroy {
     reject: (error: Error) => void;
   };
   private readonly batches = new Subject<AlpacaDataBatch>();
+  private readonly statuses = new Subject<MarketDataConnectionStatus>();
+  readonly status$ = this.statuses.asObservable();
   /** Canal interno de datos crudos; no habilita decisiones ni escribe en Redis. */
   readonly data$ = this.batches.asObservable();
 
@@ -299,6 +301,7 @@ export class MarketDataWsClient implements OnModuleDestroy {
   private transition(state: MarketDataConnectionState): void {
     if (state === this.state) return;
     this.state = state;
+    this.statuses.next(this.getStatus());
     // Lista explícita de campos permitidos: nunca serializar config o errores originales.
     this.logger.log(
       JSON.stringify({ event: 'market_data_state', ...this.getStatus() }),
@@ -371,5 +374,6 @@ export class MarketDataWsClient implements OnModuleDestroy {
   async onModuleDestroy(): Promise<void> {
     await this.stop();
     this.batches.complete();
+    this.statuses.complete();
   }
 }

@@ -20,6 +20,12 @@ export interface MarketDataConfig {
   readonly maxTickAgeMs: number;
   readonly queueCapacity: number;
   readonly consumerTimeoutMs: number;
+  readonly futureToleranceMs: number;
+  readonly dedupCapacity: number;
+  readonly historyRetentionMs: number;
+  readonly historyCapacity: number;
+  readonly referenceToleranceMs: number;
+  readonly maxAlertRules: number;
 }
 
 type Environment = Readonly<Record<string, string | undefined>>;
@@ -155,6 +161,23 @@ export function parseMarketDataConfig(
       invalid(name, 'excede el rango de temporizadores de Node.js');
     return value;
   };
+  const boundedInteger = (
+    name: string,
+    fallback: number,
+    min: number,
+    max: number,
+  ): number => {
+    const value = positiveInteger(env, name, fallback);
+    if (value < min || value > max)
+      invalid(name, 'está fuera del rango permitido');
+    return value;
+  };
+  const historyRetentionMs = boundedInteger(
+    'MARKET_DATA_HISTORY_RETENTION_MS',
+    3600000,
+    1000,
+    86400000,
+  );
 
   return Object.freeze({
     enabled,
@@ -177,10 +200,31 @@ export function parseMarketDataConfig(
     ),
     maxTickAgeMs: positiveInteger(env, 'MARKET_DATA_MAX_TICK_AGE_MS', 1000),
     queueCapacity: positiveInteger(env, 'MARKET_DATA_QUEUE_CAPACITY', 1000),
-    consumerTimeoutMs: positiveInteger(
+    consumerTimeoutMs: phaseTimeout('MARKET_DATA_CONSUMER_TIMEOUT_MS', 100),
+    futureToleranceMs: positiveInteger(
       env,
-      'MARKET_DATA_CONSUMER_TIMEOUT_MS',
+      'MARKET_DATA_FUTURE_TOLERANCE_MS',
       100,
     ),
+    dedupCapacity: boundedInteger(
+      'MARKET_DATA_DEDUP_CAPACITY',
+      200000,
+      1,
+      1000000,
+    ),
+    historyRetentionMs,
+    historyCapacity: boundedInteger(
+      'MARKET_DATA_HISTORY_CAPACITY',
+      100000,
+      2,
+      1000000,
+    ),
+    referenceToleranceMs: boundedInteger(
+      'MARKET_DATA_REFERENCE_TOLERANCE_MS',
+      Math.min(5000, historyRetentionMs),
+      1,
+      historyRetentionMs,
+    ),
+    maxAlertRules: boundedInteger('MARKET_DATA_MAX_ALERT_RULES', 20, 1, 100),
   });
 }

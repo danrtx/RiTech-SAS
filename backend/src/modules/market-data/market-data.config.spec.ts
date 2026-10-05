@@ -148,4 +148,17 @@ describe('Configuración de market data', () => {
   ])('rechaza un timeout de conexión inválido en %s', (name, value) => {
     expect(() => parseMarketDataConfig({ [name]: value })).toThrow(name);
   });
+
+  it.each([
+    ['MARKET_DATA_HISTORY_CAPACITY', '1000001'],
+    ['MARKET_DATA_HISTORY_CAPACITY', '1'],
+    ['MARKET_DATA_HISTORY_RETENTION_MS', '999'],
+    ['MARKET_DATA_HISTORY_RETENTION_MS', '86400001'],
+    ['MARKET_DATA_DEDUP_CAPACITY', '1000001'],
+    ['MARKET_DATA_REFERENCE_TOLERANCE_MS', '3600001'],
+    ['MARKET_DATA_MAX_ALERT_RULES', '101'],
+    ['MARKET_DATA_CONSUMER_TIMEOUT_MS', '2147483648'],
+  ])('limita recursos y temporizadores de análisis en %s', (name, value) => {
+    expect(() => parseMarketDataConfig({ [name]: value })).toThrow(name);
+  });
 });

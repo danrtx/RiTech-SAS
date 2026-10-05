@@ -9,6 +9,11 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, UsePipes, ValidationPipe } from '@nestjs/common';
+import type { MarketTick } from '../market-data/dto/market-tick.dto';
+import type { PriceAlert } from '../market-data/dto/price-alert.dto';
+import type { TickInvalidationReason } from '../market-data/ports/tick-consumer.interface';
+import type { MarketDataFeed } from '../market-data/market-data.config';
+import type { InvestmentUpdate } from '../hedging/investment-analysis.service';
 
 export interface TelemetrySubscriptionDto {
   symbol: string; // e.g. 'NDX' or 'QQQ'
@@ -20,7 +25,9 @@ export interface TelemetrySubscriptionDto {
   },
   namespace: 'telemetry',
 })
-export class TelemetryGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class TelemetryGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -80,5 +87,32 @@ export class TelemetryGateway implements OnGatewayConnection, OnGatewayDisconnec
       ...alert,
       timestamp: new Date().toISOString(),
     });
+  }
+
+  broadcastMarketTick(tick: MarketTick): void {
+    this.server.to(`symbol:${tick.symbol}`).emit('telemetry_tick', {
+      ...tick,
+      timestamp: tick.eventTime,
+      emittedAtMs: Date.now(),
+    });
+  }
+
+  broadcastPriceAlert(alert: PriceAlert): void {
+    this.server.to(`symbol:${alert.symbol}`).emit('price_alert', alert);
+  }
+
+  broadcastInvestmentUpdate(update: InvestmentUpdate): void {
+    this.server.to(`symbol:${update.symbol}`).emit('investment_update', update);
+  }
+
+  broadcastMarketDataQuality(event: {
+    symbol: string;
+    feed: MarketDataFeed;
+    reason: TickInvalidationReason;
+    occurredAtMs: number;
+  }): void {
+    this.server
+      ?.to(`symbol:${event.symbol}`)
+      .emit('market_data_quality', event);
   }
 }
