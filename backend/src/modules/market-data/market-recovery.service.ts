@@ -1,26 +1,29 @@
-import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
-import { MARKET_DATA_CONFIG, MarketDataConfig } from './market-data.config';
+import { Inject, Injectable, OnModuleDestroy } from "@nestjs/common";
+import { MARKET_DATA_CONFIG, MarketDataConfig } from "./market-data.config";
 import {
   MarketHistoryClient,
   marketIdentity,
   orderMarketTicks,
-} from './market-history.client';
-import { MarketDataProcessor } from './market-data.processor';
-import { MarketAtrConsumer } from './market-atr.consumer';
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
-import { PriceAnalysisService } from './analysis/price-analysis.service';
-import { AtrService } from '../atr/atr.service';
-import { IngestionState } from './ingestion.state';
-import { AlpacaAdapter } from './adapters/alpaca.adapter';
-import { AlpacaDataBatch } from './alpaca.protocol';
-import { MarketTick } from './dto/market-tick.dto';
-import { TickInvalidationReason } from './ports/tick-consumer.interface';
+} from "./market-history.client";
+import { MarketDataProcessor } from "./market-data.processor";
+import { MarketAtrConsumer } from "./market-atr.consumer";
+import { RedisCacheService } from "../redis-cache/redis-cache.service";
+import { PriceAnalysisService } from "./analysis/price-analysis.service";
+import { AtrService } from "../atr/atr.service";
+import { IngestionState } from "./ingestion.state";
+import { AlpacaAdapter } from "./adapters/alpaca.adapter";
+import { AlpacaDataBatch } from "./alpaca.protocol";
+import { MarketDataBatch } from "./market-data.protocol";
+import { MarketTick } from "./dto/market-tick.dto";
+import { TickInvalidationReason } from "./ports/tick-consumer.interface";
 
 @Injectable()
 export class MarketRecoveryService implements OnModuleDestroy {
   private readonly startedAt = Date.now();
-  private state: 'RECOVERING' | 'LIVE' | 'FAILED' | 'STOPPED' = 'RECOVERING';
+  private state: "RECOVERING" | "LIVE" | "FAILED" | "STOPPED" = "RECOVERING";
   private buffer: MarketTick[] = [];
+  private priceBatches: MarketDataBatch[] = [];
+  private priceCount = 0;
   private abort?: AbortController;
   private work?: Promise<void>;
   private retry?: NodeJS.Timeout;
@@ -49,55 +52,75 @@ export class MarketRecoveryService implements OnModuleDestroy {
     private readonly ingestion: IngestionState,
     private readonly adapter: AlpacaAdapter,
   ) {
+    // Preserve the numeric status contract; 0 explicitly means no tick replay.
+    if (config.provider === "twelvedata") this.recoveredThroughMs = 0;
     processor.onInvalidation = (reason) => this.fault(reason);
   }
   private fault(reason: TickInvalidationReason) {
     if (
-      reason === 'connection_unavailable' ||
-      reason === 'shutdown' ||
-      this.state === 'STOPPED'
+      reason === "connection_unavailable" ||
+      reason === "shutdown" ||
+      this.state === "STOPPED"
     )
       return;
     this.epoch++;
     this.abort?.abort();
     this.processor.pause();
+    this.priceBatches = [];
+    this.priceCount = 0;
     this.gapStarted ??= performance.now();
-    this.fatal = reason === 'correction' || reason === 'cancellation';
-    this.state = this.fatal ? 'FAILED' : 'RECOVERING';
+    this.fatal = reason === "correction" || reason === "cancellation";
+    this.state = this.fatal ? "FAILED" : "RECOVERING";
     this.lastError = this.fatal
-      ? 'recovery_requires_corrected_history'
+      ? "recovery_requires_corrected_history"
       : undefined;
     if (!this.fatal) this.launch();
   }
 
   disconnected() {
-    if (!this.config.enabled || this.state === 'STOPPED') return;
+    if (!this.config.enabled || this.state === "STOPPED") return;
     this.connected = false;
     this.epoch++;
     this.abort?.abort();
     clearTimeout(this.retry);
     this.buffer = [];
+    this.priceBatches = [];
+    this.priceCount = 0;
     this.gapStarted ??= performance.now();
-    this.state = this.fatal ? 'FAILED' : 'RECOVERING';
+    this.state = this.fatal ? "FAILED" : "RECOVERING";
     const wasLive = this.processor.getStatus().live;
     this.processor.setLive(false);
     // Also pause startup or a failed recovery where processor was never live.
-    if (!wasLive) this.consumer.invalidate('connection_unavailable');
+    if (!wasLive) this.consumer.invalidate("connection_unavailable");
   }
   live() {
-    if (this.state === 'STOPPED' || !this.config.enabled) return;
+    if (this.state === "STOPPED" || !this.config.enabled) return;
     this.connected = true;
     this.launch();
   }
   accept(batch: AlpacaDataBatch) {
-    if (this.state === 'LIVE') {
+    if (this.state === "LIVE") {
       this.processor.accept(batch);
       return;
     }
-    if (!this.connected || this.state === 'STOPPED') return;
+    if (!this.connected || this.state === "STOPPED") return;
+    if (this.config.provider === "twelvedata") {
+      if (
+        this.priceCount + batch.messages.length >
+        this.config.recoveryMaxTicks
+      ) {
+        this.processor.invalidate("queue_overflow");
+        return;
+      }
+      // Preserve receipt timestamps. The processor validates freshness again
+      // when the cache boundary is ready, rather than admitting stale replay.
+      this.priceBatches.push(batch);
+      this.priceCount += batch.messages.length;
+      return;
+    }
     for (const message of batch.messages) {
-      if (message.T !== 't') {
-        const reason = message.T === 'c' ? 'correction' : 'cancellation';
+      if (message.T !== "t") {
+        const reason = message.T === "c" ? "correction" : "cancellation";
         this.consumer.invalidate(reason);
         this.fault(reason);
         this.buffer = [];
@@ -107,7 +130,7 @@ export class MarketRecoveryService implements OnModuleDestroy {
       if (!result.ok) continue;
       if (this.buffer.length >= this.config.recoveryMaxTicks) {
         this.abort?.abort();
-        this.lastError = 'recovery_buffer_limit';
+        this.lastError = "recovery_buffer_limit";
         break;
       }
       this.buffer.push(result.tick);
@@ -117,14 +140,14 @@ export class MarketRecoveryService implements OnModuleDestroy {
     if (
       this.work ||
       !this.connected ||
-      this.state === 'STOPPED' ||
-      this.state === 'LIVE' ||
+      this.state === "STOPPED" ||
+      this.state === "LIVE" ||
       this.fatal
     )
       return;
     clearTimeout(this.retry);
     const epoch = this.epoch;
-    this.state = 'RECOVERING';
+    this.state = "RECOVERING";
     this.ingestion.beginRecovery();
     const abort = (this.abort = new AbortController());
     const timeout = setTimeout(
@@ -133,23 +156,23 @@ export class MarketRecoveryService implements OnModuleDestroy {
     );
     this.work = this.recover(abort.signal, epoch)
       .catch((error) => {
-        if (epoch !== this.epoch || this.state === 'STOPPED') return;
+        if (epoch !== this.epoch || this.state === "STOPPED") return;
         this.ingestion.beginRecovery();
-        this.state = 'FAILED';
+        this.state = "FAILED";
         this.metrics.failures++;
         // Errors are allowlisted; network messages/URLs and response bodies never escape.
-        const message = error instanceof Error ? error.message : '';
+        const message = error instanceof Error ? error.message : "";
         this.lastError = /^(history_|recovery_)[a-z0-9_]+$/.test(message)
           ? message
-          : 'recovery_failed';
+          : "recovery_failed";
       })
       .finally(() => {
         clearTimeout(timeout);
         this.work = undefined;
         if (
           this.connected &&
-          this.state !== 'LIVE' &&
-          this.state !== 'STOPPED' &&
+          this.state !== "LIVE" &&
+          this.state !== "STOPPED" &&
           !this.fatal
         ) {
           this.retry = setTimeout(() => this.launch(), 500);
@@ -161,9 +184,35 @@ export class MarketRecoveryService implements OnModuleDestroy {
     const started = this.gapStarted ?? performance.now();
     await this.processor.whenSettled(signal);
     signal.throwIfAborted();
+    if (this.config.provider === "twelvedata") {
+      const resumedAt = Date.now();
+      await this.consumer.prepareLiveRestart(resumedAt, signal);
+      signal.throwIfAborted();
+      if (epoch !== this.epoch || !this.connected)
+        throw new Error("recovery_cancelled");
+      this.analysis.resume();
+      this.ingestion.recovered();
+      this.state = "LIVE";
+      this.lastError = undefined;
+      this.metrics.recoveries++;
+      this.metrics.lastDurationMs = performance.now() - started;
+      // recoveredThroughMs stays 0: no historical continuity is claimed.
+      this.gapStarted = undefined;
+      this.processor.setLive(true);
+      const pending = this.priceBatches;
+      this.priceBatches = [];
+      this.priceCount = 0;
+      for (const batch of pending) {
+        if (epoch !== this.epoch || !this.connected) break;
+        this.processor.accept(batch);
+      }
+      return;
+    }
     const existing = (
       await this.cache.recoveryWindow(this.config.symbol)
-    ).filter((t) => t.feed === this.config.feed);
+    ).filter(
+      (t) => t.provider === this.config.provider && t.feed === this.config.feed,
+    );
     if (this.checkpoint === undefined && existing.length)
       this.checkpointIdentity = marketIdentity(existing.at(-1)!);
     const checkpoint = (this.checkpoint ??=
@@ -177,7 +226,7 @@ export class MarketRecoveryService implements OnModuleDestroy {
       this.checkpointIdentity &&
       !recovered.some((t) => marketIdentity(t) === this.checkpointIdentity)
     )
-      throw new Error('history_checkpoint_missing');
+      throw new Error("history_checkpoint_missing");
     await this.consumer.prepareRecovery(existing.length > 0, this.startedAt);
     let pending = recovered;
     while (true) {
@@ -193,10 +242,13 @@ export class MarketRecoveryService implements OnModuleDestroy {
       if (this.buffer.length) continue;
       const window = (
         await this.cache.recoveryWindow(this.config.symbol)
-      ).filter((t) => t.feed === this.config.feed);
+      ).filter(
+        (t) =>
+          t.provider === this.config.provider && t.feed === this.config.feed,
+      );
       signal.throwIfAborted();
       if (epoch !== this.epoch || !this.connected)
-        throw new Error('recovery_cancelled');
+        throw new Error("recovery_cancelled");
       this.analysis.restore(window, false);
       await this.atr.rebuildRecovered(end);
       signal.throwIfAborted();
@@ -214,13 +266,13 @@ export class MarketRecoveryService implements OnModuleDestroy {
       }
       signal.throwIfAborted();
       if (epoch !== this.epoch || !this.connected)
-        throw new Error('recovery_cancelled');
+        throw new Error("recovery_cancelled");
       this.ingestion.recovered();
       this.recoveredThroughMs = end;
       this.checkpoint = undefined;
       this.checkpointIdentity = undefined;
       this.analysis.resume();
-      this.state = 'LIVE';
+      this.state = "LIVE";
       this.lastError = undefined;
       this.metrics.recoveries++;
       this.metrics.historicalTicks += recovered.length;
@@ -233,19 +285,21 @@ export class MarketRecoveryService implements OnModuleDestroy {
   getStatus() {
     return {
       state: this.state,
-      bufferDepth: this.buffer.length,
+      bufferDepth: this.buffer.length + this.priceCount,
       recoveredThroughMs: this.recoveredThroughMs,
       lastError: this.lastError,
       ...this.metrics,
     };
   }
   async onModuleDestroy() {
-    this.state = 'STOPPED';
+    this.state = "STOPPED";
     this.connected = false;
     this.epoch++;
     clearTimeout(this.retry);
     this.abort?.abort();
     await this.work;
+    this.priceBatches = [];
+    this.priceCount = 0;
     this.processor.onInvalidation = undefined;
   }
 }

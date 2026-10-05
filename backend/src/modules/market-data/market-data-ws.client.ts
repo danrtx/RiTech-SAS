@@ -386,13 +386,6 @@ export class MarketDataWsClient implements OnModuleDestroy {
     this.heartbeatTimer.unref();
   }
 
-  private clearHeartbeat(): void {
-    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
-    if (this.heartbeatDeadline) clearTimeout(this.heartbeatDeadline);
-    this.heartbeatTimer = undefined;
-    this.heartbeatDeadline = undefined;
-  }
-
   private invalidFrame(): void {
     if (this.state === 'LIVE') this.logger.warn('market_data_invalid_frame');
     else this.fail({ reason: 'invalid_frame', retryable: false });
@@ -469,6 +462,8 @@ export class MarketDataWsClient implements OnModuleDestroy {
   private clearHeartbeat(): void {
     clearTimeout(this.heartbeatTimer);
     clearTimeout(this.pongTimer);
+    clearTimeout(this.heartbeatDeadline);
+    this.heartbeatDeadline = undefined;
     this.heartbeatTimer = undefined;
     this.pongTimer = undefined;
     this.expectedPong = undefined;

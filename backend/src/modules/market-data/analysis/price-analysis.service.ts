@@ -267,7 +267,11 @@ export class PriceAnalysisService implements TickConsumer {
       occurredAtMs: Date.now(),
     });
   }
-  suspend(reason: TickInvalidationReason): void {
+  suspend(reason: TickInvalidationReason, discardWindow = false): void {
+    if (discardWindow) {
+      this.history.clear();
+      for (const state of this.rules.values()) state.region = 'neutral';
+    }
     this.recovering = true;
     this.lastInvalidation = reason;
     this.gateway.broadcastMarketDataQuality({

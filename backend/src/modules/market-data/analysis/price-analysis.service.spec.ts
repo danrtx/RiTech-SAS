@@ -65,12 +65,14 @@ describe('Análisis de variación y alertas', () => {
       provider: 'twelvedata',
       feed: 'realtime',
       simulated: false,
+      marketReference: { provider: 'twelvedata', simulated: false },
       changePercent: 2,
       investment: { changePercent: 4 },
     });
     expect(gateway.broadcastInvestmentUpdate.mock.calls[1][0]).toMatchObject({
       feed: 'realtime',
       simulated: false,
+      marketReference: { provider: 'twelvedata', simulated: false },
       status: 'READY',
     });
   });
