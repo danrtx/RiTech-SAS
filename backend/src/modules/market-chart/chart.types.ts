@@ -23,6 +23,7 @@ export function validDate(value: string): boolean {
   const ms = Date.parse(`${value}T00:00:00Z`);
   return (
     /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    value >= "1900-01-01" &&
     Number.isFinite(ms) &&
     new Date(ms).toISOString().slice(0, 10) === value
   );

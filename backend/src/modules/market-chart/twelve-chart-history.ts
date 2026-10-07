@@ -36,6 +36,7 @@ export function parseHistory(
     const prices = [row.open, row.high, row.low, row.close];
     if (
       !Number.isFinite(startTimeMs) ||
+      startTimeMs < 0 ||
       new Date(startTimeMs).toISOString() !== iso.replace("Z", ".000Z") ||
       !prices.every(
         (p) =>
@@ -48,6 +49,16 @@ export function parseHistory(
     )
       throw new Error("chart_history_invalid");
     const [open, high, low, close] = prices.map(Number);
+    if (
+      row.volume !== undefined &&
+      row.volume !== null &&
+      !(
+        typeof row.volume === "number" ||
+        (typeof row.volume === "string" && /^\d+(\.\d+)?$/.test(row.volume))
+      )
+    ) {
+      throw new Error("chart_history_invalid");
+    }
     const volume =
       row.volume === undefined || row.volume === null
         ? null

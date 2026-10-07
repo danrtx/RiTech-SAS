@@ -55,6 +55,8 @@ describe("Twelve Data chart history", () => {
     body([{ ...row, high: "90" }]),
     body([{ ...row, open: "Infinity" }]),
     body([{ ...row, volume: "-1" }]),
+    body([{ ...row, volume: true }]),
+    body([{ ...row, volume: [] }]),
     body([{ ...row, datetime: "2026-02-30 14:00:00" }]),
     body([row, row]),
     { ...body(), status: "error" },
@@ -72,6 +74,7 @@ describe("Twelve Data chart history", () => {
     expect(regularSession(Date.parse("2026-10-07T20:00:00Z"))).toBe(false);
     expect(regularSession(Date.parse("2026-10-10T15:00:00Z"))).toBe(false);
     expect(validDate("2026-02-30")).toBe(false);
+    expect(validDate("0000-01-01")).toBe(false);
     expect(validDate("2026-10-07")).toBe(true);
   });
 });

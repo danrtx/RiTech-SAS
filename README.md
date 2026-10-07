@@ -4,7 +4,34 @@ Plataforma de cobertura (hedging) sobre el NASDAQ 100: backend NestJS (monolito 
 
 ## Motor ATR de un minuto
 
-El [motor operativo NestJS](backend/README.md) lee ticks de Redis, construye velas UTC, calcula ATR Wilder y publica resultados/alertas por Socket.IO y `GET /atr`. Flutter consume estos eventos y muestra ATR/baseline. Incluye pruebas con Redis real, proveedor simulado, reconexión y referencia pandas. El conector del proveedor de mercado real sigue pendiente de integración por el equipo.
+El [motor operativo NestJS](backend/README.md) recibe precios de Twelve Data, valida ticks, los procesa mediante Redis y calcula ATR Wilder. Publica resultados/alertas por Socket.IO y `GET /atr`. Incluye pruebas con Redis real, proveedor simulado, reconexión y referencia pandas.
+
+El dashboard Flutter muestra la evolución de **QQQ como referencia del Nasdaq 100**, con línea, velas de 1/5/15 minutos, volumen disponible, zoom, cursor OHLC y selección de jornadas. PostgreSQL conserva las observaciones y las velas de cada fecha; al cerrar el mercado o reiniciar la aplicación, el gráfico se consulta desde ese archivo. Las barras históricas de Twelve Data completan el gráfico sin disparar alertas retrospectivas ni alimentar artificialmente el ATR.
+
+### Ejecutar el dashboard web
+
+Con Docker Desktop abierto, Node.js 20 y Flutter estable, desde la raíz:
+
+```bash
+docker compose up -d postgres redis
+cd backend
+npm ci
+npm run start:dev
+```
+
+En otra terminal:
+
+```bash
+cd frontend_mobile
+flutter pub get
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080
+```
+
+Abrir http://127.0.0.1:8080. El backend lee el `.env` existente (`MARKET_DATA_ENABLED=true`, `MARKET_DATA_PROVIDER=twelvedata`, `MARKET_DATA_FEED=realtime`, `MARKET_DATA_SYMBOL=QQQ`, `TWELVE_DATA_API_KEY`). La base se prepara con migraciones al arrancar. La clave permanece en el backend; Flutter usa las URLs locales y admite `--dart-define=API_BASE_URL=...` y `--dart-define=WS_BASE_URL=.../telemetry` para otros hosts. En despliegues HTTPS, usar también URLs HTTPS para el backend.
+
+Se debe mantener el backend ejecutándose para registrar las observaciones del WebSocket. Al iniciar y cada cinco minutos recupera hasta 1.000 barras recientes de Twelve Data; una interrupción más larga puede dejar huecos fuera de esa ventana. Los datos ya guardados no caducan. La vista comienza en la jornada más reciente disponible y permite consultar las anteriores con el calendario.
+
+Validación con datos reales del 7 de octubre de 2026: [archivo y WebSocket](reportes/market_data/chart_live_2026-10-07.json), [navegador](reportes/market_data/chart_browser_2026-10-07.json), [escritorio](reportes/market_data/chart_desktop_2026-10-07.png) y [móvil](reportes/market_data/chart_mobile_2026-10-07.png). Ver contratos, límites y pruebas en el [README del backend](backend/README.md#gráfica-diaria-persistente).
 
 Se conserva [packages/atr_engine](packages/atr_engine/README.md) como biblioteca Dart independiente y referencia de pruebas; su [adaptador Flutter](packages/atr_engine_flutter/README.md) es opcional. El dashboard operativo usa el ATR del backend.
 
