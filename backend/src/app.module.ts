@@ -8,6 +8,7 @@ import { MarketDataModule } from './modules/market-data/market-data.module';
 import { HedgingModule } from './modules/hedging/hedging.module';
 import { HealthModule } from './modules/health/health.module';
 import { AtrModule } from './modules/atr/atr.module';
+import { MarketChartModule } from './modules/market-chart/market-chart.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AtrModule } from './modules/atr/atr.module';
     HedgingModule,
     HealthModule,
     AtrModule,
+    MarketChartModule,
   ],
   controllers: [],
   providers: [],
