@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b111a">
+  <meta name="description" content="RiTech SAS: seguimiento del Nasdaq 100 con gráficas de QQQ, velas e historial diario.">
+  <title>RiTech · Mercados</title>
+  <style>
+    body { margin: 0; background: #0b111a; color: #a7b4c5; font-family: sans-serif; }
+    #loading { position: fixed; inset: 0; display: grid; place-content: center; gap: 18px; text-align: center; }
+    #loading strong { color: #42d3a5; font-size: 28px; }
+  </style>
+</head>
+<body>
+  <div id="loading" role="status"><strong>RiTech</strong><span>Cargando mercados…</span></div>
+  <script>window.addEventListener('flutter-first-frame', () => document.getElementById('loading')?.remove());</script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
