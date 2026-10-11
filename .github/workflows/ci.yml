@@ -15,6 +15,16 @@ jobs:
     name: Backend (NestJS) - lint, tests y build
     runs-on: ubuntu-latest
     services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ritech
+          POSTGRES_PASSWORD: ritech_test
+          POSTGRES_DB: ritech_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ritech -d ritech_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
       redis:
         image: redis:7-alpine
         ports: ['6379:6379']
@@ -41,6 +51,13 @@ jobs:
 
       - name: Pruebas unitarias
         run: npm test -- --ci
+        env:
+          RUN_CHART_DB_TESTS: '1'
+          DB_HOST: 127.0.0.1
+          DB_PORT: '5432'
+          DB_USER: ritech
+          DB_PASSWORD: ritech_test
+          DB_NAME: ritech_test
 
       - name: Build
         run: npm run build
@@ -93,6 +110,9 @@ jobs:
 
       - name: Pruebas unitarias
         run: flutter test
+
+      - name: Compilar dashboard web
+        run: flutter build web
 
   atr-packages:
     name: Paquetes ATR Dart y adaptador Flutter

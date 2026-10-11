@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-07T18:22:35.146Z",
+  "provider": "twelvedata",
+  "symbol": "QQQ",
+  "data": "real_provider",
+  "session": "2026-10-07",
+  "bars": 293,
+  "historicalSession": "2026-10-06",
+  "historicalBars": 390,
+  "historicalFingerprint": "7b49797a9769c63778033aef82bc5bd042dc8d54f549df7587466395ecb40644",
+  "historicalReloadIdentical": true,
+  "independentBackendWithProviderDisabled": true,
+  "liveCandleObserved": true,
+  "liveCandleAlreadyPersisted": true,
+  "historyImport": "ready"
+}

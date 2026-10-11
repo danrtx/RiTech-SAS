@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-10-07T18:27:28.986Z",
+  "browser": "Brave Chromium headless",
+  "source": "real backend / Twelve Data",
+  "desktop": [
+    1440,
+    1200
+  ],
+  "mobile": [
+    390,
+    980
+  ],
+  "checks": {
+    "renderedDatabaseCandles": true,
+    "lineAndFiveMinuteMode": true,
+    "zoomAndReset": true,
+    "historicalSessionSelection": true,
+    "keepsChartOnHttpFailure": true,
+    "mobileRendering": true
+  },
+  "pageErrors": []
+}
