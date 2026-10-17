@@ -34,6 +34,7 @@ interface RuleState {
 export class PriceAnalysisService implements TickConsumer {
   private history: PriceHistory;
   private recovering = false;
+  private continuousFromMs?: number;
   private readonly rules = new Map<string, RuleState>();
   private lastInvalidation?: TickInvalidationReason;
   private alertsEmitted = 0;
@@ -110,12 +111,18 @@ export class PriceAnalysisService implements TickConsumer {
     const current = this.history.latest();
     if (!rule.enabled) return { status: 'DISABLED' as const };
     if (!current) return { status: 'WARMING_UP' as const };
+    if (this.continuousFromMs !== undefined && current.eventTimeMs < this.continuousFromMs)
+      return { status: 'WARMING_UP' as const };
     if (
       nowMs - current.eventTimeMs > this.config.maxTickAgeMs ||
       current.eventTimeMs - nowMs > this.config.futureToleranceMs
     )
       return { status: 'STALE' as const };
     const targetMs = current.eventTimeMs - (rule.windowMs ?? 0);
+    if (rule.referenceMode !== 'ENTRY' && this.continuousFromMs !== undefined &&
+        targetMs < this.continuousFromMs)
+      return { status: this.history.earliest()!.eventTimeMs > targetMs
+        ? 'WARMING_UP' as const : 'REFERENCE_GAP' as const };
     if (
       rule.referenceMode === 'ENTRY' &&
       current.eventTimeMs < rule.entryTimeMs!
@@ -136,6 +143,9 @@ export class PriceAnalysisService implements TickConsumer {
             ? ('WARMING_UP' as const)
             : ('REFERENCE_GAP' as const),
       };
+    if (rule.referenceMode !== 'ENTRY' && this.continuousFromMs !== undefined &&
+        reference.eventTimeMs < this.continuousFromMs)
+      return { status: 'REFERENCE_GAP' as const };
     const changePercent =
       ((current.price - reference.price) / reference.price) * 100;
     if (!Number.isFinite(changePercent))
@@ -311,6 +321,9 @@ export class PriceAnalysisService implements TickConsumer {
   appendRecovered(tick: MarketTick): void {
     this.history.append(tick);
   }
+  markCoverageStart(timeMs: number): void {
+    this.continuousFromMs = timeMs;
+  }
   resume(): void {
     this.recovering = false;
     for (const state of this.rules.values()) {
@@ -355,9 +368,11 @@ export class PriceAnalysisService implements TickConsumer {
       ...this.history.getMetadata(),
       marketReference: describeMarketReference(this.config),
       lastInvalidation: this.lastInvalidation,
+      continuousFromMs: this.continuousFromMs ?? null,
       fresh:
         !this.recovering &&
         !!current &&
+        (this.continuousFromMs === undefined || current.eventTimeMs >= this.continuousFromMs) &&
         Date.now() - current.eventTimeMs <= this.config.maxTickAgeMs &&
         current.eventTimeMs - Date.now() <= this.config.futureToleranceMs,
       alertsEmitted: this.alertsEmitted,

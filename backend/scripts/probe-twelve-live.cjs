@@ -50,8 +50,12 @@ async function main() {
   const ages = [], afterCutAges = [], dashboardLatencies = [];
   let app, dashboard, sourceSocket, timer, cutAt, subscription, sourceStatus;
   const deadline = setTimeout(() => { console.error('probe_hard_timeout'); process.exit(2); }, 240000);
-  const output = resolve(process.env.QA_REPORT_PATH || '../reportes/market_data/twelve_data_live_2026-10-05.json');
+  const output = process.env.QA_REPORT_PATH
+    ? resolve(process.env.QA_REPORT_PATH)
+    : resolve(__dirname, '../../../reportes/market_data', `twelve_data_live_${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
   try {
+    if (!process.env.TWELVE_DATA_API_KEY?.trim()) throw new Error('probe_missing_api_key');
+    if (process.env.MARKET_DATA_ENABLED !== 'true') throw new Error('probe_ingestion_disabled');
     const config = parseMarketDataConfig(process.env);
     if (!config.enabled || config.provider !== 'twelvedata' || config.feed !== 'realtime')
       throw new Error('probe_requires_real_twelve');
@@ -60,7 +64,8 @@ async function main() {
       throw new Error('probe_requires_isolated_redis');
     report.configuration = { provider: config.provider, feed: config.feed, symbol: config.symbol,
       maxTickAgeMs: config.maxTickAgeMs, futureToleranceMs: config.futureToleranceMs,
-      heartbeatMs: config.heartbeatMs, heartbeatTimeoutMs: config.heartbeatTimeoutMs };
+      heartbeatMs: config.heartbeatMs, heartbeatTimeoutMs: config.heartbeatTimeoutMs,
+      transportPingMs: config.transportPingMs, transportPongTimeoutMs: config.transportPongTimeoutMs };
     const module = await Test.createTestingModule({ imports: [
       ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true, load: [() => ({
         marketData: config, REDIS_HOST: '127.0.0.1', REDIS_PORT: port,
@@ -157,6 +162,8 @@ async function main() {
       ingestionLatencyUnder200ms: ingestion.receiptToConsumerLatencyMs.count > 0 && ingestion.receiptToConsumerLatencyMs.max < 200,
       reconnectUnder2s: report.controlledDisconnect.attempted && report.controlledDisconnect.reconnectedMs < 2000,
       validPricesAfterReconnect: ingestion.delivered > report.beforeDisconnectStatus.ingestion.delivered,
+      exactContinuityRestored: report.finalStatus.readiness.exactContinuityReady,
+      requiredIndexAvailable: report.finalStatus.readiness.requiredIndexAvailable,
     };
     report.outcome = Object.values(report.checks).every(Boolean) ? 'PASS' : 'NOT_READY';
   } catch (error) {

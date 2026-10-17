@@ -40,6 +40,30 @@ describe('Análisis de variación y alertas', () => {
   });
   afterEach(() => jest.restoreAllMocks());
 
+  it('retains history but blocks a window crossing an unreplayed gap, then warms up', async () => {
+    service.upsertRule('gap', { ...defaultRule, windowMs: 1000 });
+    jest.spyOn(Date, 'now').mockReturnValue(BASE);
+    await service.consume(normalizedTick(BASE, 100));
+    service.suspend('connection_unavailable');
+    expect(service.getHistory().points).toBe(1);
+    service.markCoverageStart(BASE + 500);
+    service.resume();
+    expect(service.getStatus().fresh).toBe(false);
+    jest.spyOn(Date, 'now').mockReturnValue(BASE + 1000);
+    await service.consume(normalizedTick(BASE + 1000, 102));
+    expect(service.listRules(BASE + 1000)[0].analysis.status).toBe('REFERENCE_GAP');
+    expect(gateway.broadcastPriceAlert).not.toHaveBeenCalled();
+    // Even when target time is after the gap, a tolerated reference before it is unsafe.
+    jest.spyOn(Date, 'now').mockReturnValue(BASE + 1500);
+    await service.consume(normalizedTick(BASE + 1500, 103));
+    expect(service.listRules(BASE + 1500)[0].analysis.status).toBe('REFERENCE_GAP');
+    jest.spyOn(Date, 'now').mockReturnValue(BASE + 2000);
+    await service.consume(normalizedTick(BASE + 2000, 104));
+    expect(service.listRules(BASE + 2000)[0].analysis.status).toBe('READY');
+    expect(service.getHistory().points).toBe(4);
+    expect(gateway.broadcastPriceAlert).toHaveBeenCalledTimes(1);
+  });
+
   it('identifica el feed real Twelve Data sin marcar resultados como simulados', async () => {
     service = new PriceAnalysisService(
       parseMarketDataConfig({ MARKET_DATA_PROVIDER: 'twelvedata' }),

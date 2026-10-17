@@ -36,6 +36,7 @@ export class MarketDataWsClient implements OnModuleDestroy {
   private connection?: { socket: WebSocket; detach: () => void };
   private phaseTimer?: NodeJS.Timeout;
   private heartbeatTimer?: NodeJS.Timeout;
+  private transportTimer?: NodeJS.Timeout;
   private heartbeatDeadline?: NodeJS.Timeout;
   private pongTimer?: NodeJS.Timeout;
   private expectedPong?: string;
@@ -342,6 +343,7 @@ export class MarketDataWsClient implements OnModuleDestroy {
       this.clearPhaseTimer();
       this.transition('LIVE');
       this.startTwelveHeartbeat();
+      this.armHeartbeat();
       this.pending?.resolve();
       this.pending = undefined;
       return;
@@ -461,6 +463,8 @@ export class MarketDataWsClient implements OnModuleDestroy {
 
   private clearHeartbeat(): void {
     clearTimeout(this.heartbeatTimer);
+    clearTimeout(this.transportTimer);
+    this.transportTimer = undefined;
     clearTimeout(this.pongTimer);
     clearTimeout(this.heartbeatDeadline);
     this.heartbeatDeadline = undefined;
@@ -470,9 +474,9 @@ export class MarketDataWsClient implements OnModuleDestroy {
   }
 
   private armHeartbeat(): void {
-    if (this.state !== 'LIVE' || this.heartbeatTimer || this.pongTimer) return;
-    this.heartbeatTimer = setTimeout(() => {
-      this.heartbeatTimer = undefined;
+    if (this.state !== 'LIVE' || this.transportTimer || this.pongTimer) return;
+    this.transportTimer = setTimeout(() => {
+      this.transportTimer = undefined;
       const socket = this.connection?.socket;
       if (this.state !== 'LIVE' || socket?.readyState !== WebSocket.OPEN)
         return;
@@ -481,7 +485,8 @@ export class MarketDataWsClient implements OnModuleDestroy {
       this.pongTimer = setTimeout(() => {
         if (this.connection?.socket === socket)
           this.fail({ reason: 'heartbeat_timeout', retryable: true });
-      }, this.config.heartbeatTimeoutMs);
+      }, this.config.provider === 'twelvedata'
+        ? this.config.transportPongTimeoutMs : this.config.heartbeatTimeoutMs);
       this.pongTimer.unref();
       try {
         socket.ping(token, undefined, (error: Error | undefined) => {
@@ -491,8 +496,9 @@ export class MarketDataWsClient implements OnModuleDestroy {
       } catch {
         this.fail({ reason: 'send_failed', retryable: true });
       }
-    }, this.config.heartbeatMs);
-    this.heartbeatTimer.unref();
+    }, this.config.provider === 'twelvedata'
+      ? this.config.transportPingMs : this.config.heartbeatMs);
+    this.transportTimer.unref();
   }
 
   private armPhaseTimer(

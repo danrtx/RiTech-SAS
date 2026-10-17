@@ -7,6 +7,68 @@
 
 ## 1. Resultado de la implementación
 
+**Actualización de endurecimiento (Diego/Dylan):** la reconexión Twelve Data conserva
+el historial en memoria y lo restaura desde Redis, pero marca el inicio de cobertura
+continua. Las reglas WINDOW que atraviesen el hueco devuelven `REFERENCE_GAP`; vuelven
+a `READY` al completar una ventana posterior al corte. El ATR sigue descartando
+minutos incompletos. Esto no reconstruye precios que el proveedor nunca entregó.
+
+`GET /market-data/status` incorpora `readiness`: conexión, precios frescos, fuente
+NDX y continuidad exacta se informan por separado. `LIVE` por sí solo no acredita
+la entrega. Twelve Data expone `replaySupported=false` y la estrategia
+`RETAIN_HISTORY_WITH_GAP`; Alpaca conserva su recuperación de operaciones.
+
+El ping/pong de transporte usa 500 ms + 500 ms por defecto, independientemente del
+heartbeat JSON de 10 segundos recomendado por Twelve Data. Los valores se ajustan
+con `MARKET_DATA_TRANSPORT_PING_MS` y `MARKET_DATA_TRANSPORT_PONG_TIMEOUT_MS`.
+El tiempo total hasta reconectar depende también del proveedor y de la red.
+
+Se colapsan observaciones de precio consecutivas idénticas (símbolo, exchange,
+moneda, timestamp y precio). A → B → A conserva los tres cambios. No equivale a
+deduplicación global de operaciones: este feed no entrega un identificador de trade.
+
+Los reportes nuevos se escriben en `../../reportes/market_data/` desde este backend,
+fuera del repositorio, con un nombre único por ejecución. La evidencia original del
+5 de octubre se conserva allí. Los resultados y cifras siguientes describen la
+validación anterior a este endurecimiento.
+
+### Configuración local y verificación del endurecimiento
+
+En este equipo se preparó el `.env` ignorado por Git, conservando sus valores
+existentes. La ingesta queda deshabilitada porque falta `TWELVE_DATA_API_KEY`.
+Para habilitarla, guardar la clave **únicamente en el archivo local** y cambiar
+`MARKET_DATA_ENABLED=true`. Una clave permite intentar la conexión; no acredita
+acceso a NDX, datos frescos ni recuperación histórica.
+
+Desde `backend/`:
+
+```powershell
+npm test -- --runInBand
+npm run test:integration
+npm run lint
+npm run build
+```
+
+Para la prueba externa, crear un Redis desechable, suministrar `QA_REDIS_PORT` y
+`QA_REDIS_PASSWORD`, y ejecutar `npm run market-data:probe:real`. El comando compila,
+carga el `.env` raíz y escribe la evidencia fuera del repositorio. Retorna un código
+de error y `NOT_READY` si falta la clave, no hay precios válidos, no hay continuidad
+exacta o la fuente sigue siendo QQQ. No usa velas REST como si fueran ticks perdidos.
+
+La prueba Redis de Twelve Data incluye tres reinicios con ráfagas: 304 observaciones
+persistidas, 300 repeticiones consecutivas descartadas y cero descartes por desborde.
+La evidencia está en `../../reportes/market_data/twelve_data_mock_recovery.json`;
+es una prueba simulada del sistema, no una certificación del proveedor externo.
+El recorrido HTTP/Socket.IO prueba también pérdida silenciosa de transporte con
+detección y nueva suscripción completas en menos de dos segundos en la red local.
+
+Restricciones contrastadas con la documentación oficial:
+[streaming y heartbeat](https://support.twelvedata.com/en/articles/5620516-how-to-stream-the-data),
+[acceso WebSocket por plan](https://support.twelvedata.com/en/articles/5194610-websocket-faq)
+y [oferta de índices](https://twelvedata.com/indices), que aún muestra “Coming soon”.
+Por tanto, no se presupone que el ticker NDX de una cuenta gratuita sea el índice
+NASDAQ 100 ni se cambia QQQ por un símbolo sin verificar su identidad y acceso.
+
 Se incorporó Twelve Data como fuente WebSocket de precios de **QQQ**, conservando el historial, las reglas de subida/bajada, el cálculo de impacto estimado ×2 y los canales de entrega al dashboard.
 
 QQQ continúa siendo una referencia del comportamiento del Nasdaq 100. Esta migración no cambia el instrumento a LQQ ni obtiene directamente el índice oficial NDX.
@@ -203,7 +265,7 @@ La prueba atravesó el proveedor real, los módulos Nest de ingesta/análisis/AT
 
 Los timestamps de las 17 observaciones estaban alineados al minuto. Por ello la antigüedad observada podría incluir una limitación de precisión del proveedor y no debe interpretarse automáticamente como tiempo de tránsito de red. Una comparación aproximada con la cabecera HTTP `Date` del proveedor dio −535 ms respecto del punto medio local, con 336 ms de ida/vuelta; no explica por sí sola diferencias de decenas de segundos. No se reemplazaron los tiempos originales por la recepción local.
 
-Evidencia completa: [resultado JSON de la prueba real](../reportes/market_data/twelve_data_live_2026-10-05.json). Ejecutor reutilizable: [probe-twelve-live.cjs](scripts/probe-twelve-live.cjs). Después de compilar, se ejecuta desde `backend/` con `node --env-file=../.env scripts/probe-twelve-live.cjs`, suministrando `QA_REDIS_PORT` y `QA_REDIS_PASSWORD` de un Redis local desechable. `QA_REPORT_PATH` permite elegir otro archivo de resultado.
+Evidencia completa: [resultado JSON de la prueba real](../../reportes/market_data/twelve_data_live_2026-10-05.json). Ejecutor reutilizable: [probe-twelve-live.cjs](scripts/probe-twelve-live.cjs). Después de compilar, se ejecuta desde `backend/` con `node --env-file=../.env scripts/probe-twelve-live.cjs`, suministrando `QA_REDIS_PORT` y `QA_REDIS_PASSWORD` de un Redis local desechable. `QA_REPORT_PATH` permite elegir otro archivo de resultado.
 
 El Redis temporal se cerró y eliminó al finalizar. No se modificaron el `.env`, los contratos JSON de las API, el frontend ni los módulos productivos en esta prueba. Es necesario resolver la frescura/precisión efectiva del dato o acordar otro criterio de antigüedad antes de repetir la aceptación de producción.
 

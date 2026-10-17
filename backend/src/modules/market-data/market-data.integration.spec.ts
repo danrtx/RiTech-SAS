@@ -70,7 +70,7 @@ describe("Mock → backend → historial/reglas HTTP → alerta Socket.IO", () =
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([key, field]) => [
             key,
-            key === "conditions" ? "array" : shape(field),
+            key === "conditions" ? "array" : key === "continuousFromMs" ? "number|null" : shape(field),
           ]),
       );
     return value === null ? "null" : typeof value;
@@ -82,6 +82,8 @@ describe("Mock → backend → historial/reglas HTTP → alerta Socket.IO", () =
   it.each(["alpaca", "twelvedata"])(
     "%s entrega precios, alertas y recupera sin cruzar huecos",
     async (provider) => {
+      // Both recovery checkpoints and observations use the fixture clock.
+      jest.spyOn(Date, "now").mockReturnValue(BASE);
       jest.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
       jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
       const alpacaNormalization =
@@ -207,6 +209,13 @@ describe("Mock → backend → historial/reglas HTTP → alerta Socket.IO", () =
         );
 
         jest.spyOn(Date, "now").mockReturnValue(BASE);
+        publish([createTradeFixture({ i: 99, p: 100, t: new Date(BASE - 60000).toISOString() })]);
+        await waitUntil(() => app.get(MarketDataProcessor).getStatus().rejected.stale === 1);
+        const unavailable = await (await fetch(`${http}/market-data/status`)).json();
+        expect(unavailable.readiness).toMatchObject({ transportReady: true, freshDataReady: false,
+          requiredIndexAvailable: false, blockingReasons: expect.arrayContaining(['NO_FRESH_PRICES', 'NDX_SOURCE_REQUIRED']) });
+        expect(unavailable.ingestion.lastRejection.reason).toBe('stale');
+        expect(persisted.size).toBe(0);
         publish([
           createTradeFixture({ i: 1, p: 100, t: new Date(BASE).toISOString() }),
         ]);
@@ -310,6 +319,8 @@ describe("Mock → backend → historial/reglas HTTP → alerta Socket.IO", () =
           ],
         });
         expect(redis.appendTick).toHaveBeenCalledTimes(3);
+        expect(status.readiness.freshDataReady).toBe(true);
+        expect(status.readiness.exactContinuityReady).toBe(provider === 'alpaca');
 
         const degraded = firstValueFrom(
           app.get(MarketDataWsClient).status$.pipe(
@@ -324,7 +335,8 @@ describe("Mock → backend → historial/reglas HTTP → alerta Socket.IO", () =
           ),
         );
         const disconnectedAt = performance.now();
-        mock.disconnectClients();
+        if (mock instanceof TwelveDataMockServer) mock.silenceClients();
+        else mock.disconnectClients();
         await degraded;
         const quality = await frame((line) =>
           line.includes('"market_data_quality"'),
@@ -332,7 +344,7 @@ describe("Mock → backend → historial/reglas HTTP → alerta Socket.IO", () =
         expect(quality).toContain("connection_unavailable");
         expect(
           await (await fetch(`${http}/market-data/history`)).json(),
-        ).toMatchObject({ points: provider === "twelvedata" ? 0 : 3 });
+        ).toMatchObject({ points: 3 });
         await recovered;
         await waitUntil(
           () =>
@@ -364,13 +376,13 @@ describe("Mock → backend → historial/reglas HTTP → alerta Socket.IO", () =
         ).toMatchObject([
           {
             analysis: {
-              status: provider === "twelvedata" ? "WARMING_UP" : "READY",
+              status: provider === "twelvedata" ? "REFERENCE_GAP" : "READY",
             },
           },
         ]);
         if (provider === "twelvedata") {
           expect(redis.advanceCoverage).toHaveBeenCalledTimes(2);
-          expect(redis.recoveryWindow).not.toHaveBeenCalled();
+          expect(redis.recoveryWindow).toHaveBeenCalled();
           jest.spyOn(Date, "now").mockReturnValue(BASE + 3000);
           publish([
             createTradeFixture({

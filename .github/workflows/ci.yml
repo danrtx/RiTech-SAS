@@ -50,7 +50,7 @@ jobs:
         run: npm run lint
 
       - name: Pruebas unitarias
-        run: npm test -- --ci
+        run: npm test -- --ci --runInBand --json --outputFile=${{ runner.temp }}/backend-tests.json
         env:
           RUN_CHART_DB_TESTS: '1'
           DB_HOST: 127.0.0.1
@@ -58,6 +58,9 @@ jobs:
           DB_USER: ritech
           DB_PASSWORD: ritech_test
           DB_NAME: ritech_test
+
+      - name: Auditoria de seguridad (informe, no certificacion)
+        run: npm run audit:security -- --output=${{ runner.temp }}/security-audit.json
 
       - name: Build
         run: npm run build
@@ -86,6 +89,8 @@ jobs:
           path: |
             ${{ runner.temp }}/streaming_metrics.json
             ${{ runner.temp }}/epic01_metrics.json
+            ${{ runner.temp }}/backend-tests.json
+            ${{ runner.temp }}/security-audit.json
           if-no-files-found: warn
 
   mobile:
