@@ -1,4 +1,5 @@
-import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
+import { Inject, Injectable, OnModuleInit, Optional } from "@nestjs/common";
+import { StopLossService } from '../hedging/stop-loss.service';
 import { createHash } from "node:crypto";
 import { MARKET_DATA_CONFIG, MarketDataConfig } from "./market-data.config";
 import { MarketTick } from "./dto/market-tick.dto";
@@ -27,6 +28,7 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
     private readonly analysis: PriceAnalysisService,
     private readonly ingestion: IngestionState,
     private readonly clock: MarketClock,
+    @Optional() private readonly stopLoss?: StopLossService,
   ) {}
 
   onModuleInit() {
@@ -93,17 +95,21 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
     }
     this.needsBoundary = false;
     if (this.ingestion.recovering) this.ingestion.recovered();
-    if (result.accepted) await this.analysis.consume(tick, context);
+    if (result.accepted) {
+      await this.analysis.consume(tick, context);
+      if (current()) this.stopLoss?.enqueue(tick);
+    }
   }
 
   invalidate(reason: TickInvalidationReason): void {
+    this.stopLoss?.invalidate();
     this.generation++;
     this.ingestion.beginRecovery();
     if (this.config.provider === "twelvedata") {
       // No exact replay is available: never evaluate a window across a gap.
       this.needsBoundary = true;
       this.atr.invalidateSymbol(this.config.symbol);
-      this.analysis.suspend(reason, true);
+      this.analysis.suspend(reason);
     } else if (
       [
         "connection_unavailable",
@@ -128,10 +134,16 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
   ): Promise<void> {
     signal.throwIfAborted();
     const boundary = minuteStart(startedAt) + MINUTE_MS;
+    const retained = (await this.cache.recoveryWindow(this.config.symbol)).filter(
+      tick => tick.provider === this.config.provider && tick.feed === this.config.feed,
+    );
+    signal.throwIfAborted();
     await this.cache.advanceCoverage(this.config.symbol, boundary);
     signal.throwIfAborted();
     this.atr.invalidateSymbol(this.config.symbol, boundary);
-    this.analysis.restore([], false);
+    // Retain visible history, but do not evaluate WINDOW rules across an unreplayed gap.
+    this.analysis.markCoverageStart(startedAt);
+    this.analysis.restore(retained, false);
     this.needsBoundary = false;
   }
   async prepareRecovery(hasHistory: boolean, startedAt: number): Promise<void> {

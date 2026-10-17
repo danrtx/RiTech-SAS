@@ -46,7 +46,7 @@ describe("Twelve Data recovery without trade replay", () => {
     cache = {
       advanceCoverage: jest.fn().mockResolvedValue(undefined),
       appendTick: jest.fn().mockResolvedValue({ accepted: true }),
-      recoveryWindow: jest.fn(),
+      recoveryWindow: jest.fn().mockResolvedValue([]),
     };
     atr = { invalidateSymbol: jest.fn() };
     gateway = {
@@ -124,7 +124,7 @@ describe("Twelve Data recovery without trade replay", () => {
       historicalTicks: 0,
     });
     expect(history.fetch).not.toHaveBeenCalled();
-    expect(cache.recoveryWindow).not.toHaveBeenCalled();
+    expect(cache.recoveryWindow).toHaveBeenCalledWith('QQQ');
     expect(cache.advanceCoverage.mock.invocationCallOrder[0]).toBeLessThan(
       cache.appendTick.mock.invocationCallOrder[0],
     );
@@ -147,23 +147,25 @@ describe("Twelve Data recovery without trade replay", () => {
     ).rejects.toThrow("history_tick_replay_unavailable");
     expect(request).not.toHaveBeenCalled();
   });
-  it("clears the analysis on disconnect and leaves persisted ticks untouched", async () => {
+  it("retains history on disconnect but does not claim exact continuity", async () => {
     recovery.live();
     recovery.accept(batch());
     await waitUntil(() => processor.getStatus().delivered === 1);
+    cache.recoveryWindow.mockResolvedValue([gateway.broadcastMarketTick.mock.calls[0][0]]);
     recovery.disconnected();
-    expect(analysis.getStatus()).toMatchObject({ points: 0, recovering: true });
+    expect(analysis.getStatus()).toMatchObject({ points: 1, recovering: true });
     expect(ingestion.recovering).toBe(true);
     recovery.live();
     await waitUntil(() => recovery.getStatus().state === "LIVE");
     expect(analysis.getStatus()).toMatchObject({
-      points: 0,
+      points: 1,
       recovering: false,
       fresh: false,
     });
     expect(cache.appendTick).toHaveBeenCalledTimes(1);
     expect(cache.advanceCoverage).toHaveBeenCalledTimes(2);
     expect(history.fetch).not.toHaveBeenCalled();
+    expect(recovery.getStatus()).toMatchObject({ replaySupported: false, continuityRestored: false });
   });
   it("rejects old buffered prices using original receipt and event times", async () => {
     let release!: () => void;

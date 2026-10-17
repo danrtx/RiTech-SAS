@@ -18,6 +18,8 @@ export interface MarketDataConfig {
   readonly reconnectMaxMs: number;
   readonly heartbeatMs: number;
   readonly heartbeatTimeoutMs: number;
+  readonly transportPingMs: number;
+  readonly transportPongTimeoutMs: number;
   readonly maxTickAgeMs: number;
   readonly queueCapacity: number;
   readonly consumerTimeoutMs: number;
@@ -216,6 +218,9 @@ export function parseMarketDataConfig(
       "MARKET_DATA_HEARTBEAT_TIMEOUT_MS",
       provider === "twelvedata" ? 10000 : 500,
     ),
+    // Protocol ping/pong is independent of Twelve Data's 10s application heartbeat.
+    transportPingMs: phaseTimeout("MARKET_DATA_TRANSPORT_PING_MS", 500),
+    transportPongTimeoutMs: phaseTimeout("MARKET_DATA_TRANSPORT_PONG_TIMEOUT_MS", 500),
     maxTickAgeMs: positiveInteger(env, "MARKET_DATA_MAX_TICK_AGE_MS", 1000),
     queueCapacity: positiveInteger(env, "MARKET_DATA_QUEUE_CAPACITY", 1000),
     consumerTimeoutMs: phaseTimeout("MARKET_DATA_CONSUMER_TIMEOUT_MS", 100),

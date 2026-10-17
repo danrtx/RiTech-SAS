@@ -62,6 +62,17 @@ describe('Adaptador Twelve Data al contrato de ticks existente', () => {
     expect(new Set(ids).size).toBe(3);
   });
 
+  it('identifica repeticiones consecutivas sin descartar el siguiente segundo', () => {
+    const values = [price, price, { ...price, timestamp: price.timestamp + 1 }];
+    const ids = values.map(value => {
+      const result = adapter.normalize(value, value.timestamp * 1000);
+      if (!result.ok) throw new Error('unexpected_rejection');
+      return result.tick.eventId;
+    });
+    expect(ids[0]).toBe(ids[1]);
+    expect(ids[2]).not.toBe(ids[1]);
+  });
+
   it.each([
     [{ symbol: 'NDX' }, 'symbol'],
     [{ currency: 'EUR' }, 'currency'],

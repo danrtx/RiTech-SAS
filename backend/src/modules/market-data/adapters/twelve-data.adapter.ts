@@ -9,6 +9,7 @@ import {
 /** Convierte precios de Twelve Data al contrato existente sin inventar operaciones. */
 @Injectable()
 export class TwelveDataAdapter implements MarketDataAdapter {
+  private previous?: { fingerprint: string; eventId: string };
   constructor(
     @Inject(MARKET_DATA_CONFIG) private readonly config: MarketDataConfig,
   ) {}
@@ -52,7 +53,14 @@ export class TwelveDataAdapter implements MarketDataAdapter {
     // No hay ID de operación, condiciones ni volumen por operación en este feed.
     // Un precio puede volver a un valor anterior dentro del mismo segundo.
     // Un hash de precio/tiempo descartaría ese cambio legítimo: identificar la observación local.
-    const eventId = `td:${randomUUID()}`;
+    // Collapse only consecutive identical price observations. A -> B -> A
+    // remains three changes; this is not trade-level exactly-once delivery.
+    const fingerprint = JSON.stringify([
+      message.symbol, message.exchange, message.currency, message.timestamp, message.price,
+    ]);
+    const eventId = this.previous?.fingerprint === fingerprint
+      ? this.previous.eventId : `td:${randomUUID()}`;
+    this.previous = { fingerprint, eventId };
     return {
       ok: true,
       eventTimeNs: BigInt(message.timestamp) * 1000000000n,

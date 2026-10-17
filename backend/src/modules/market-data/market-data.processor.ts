@@ -51,6 +51,7 @@ export class MarketDataProcessor {
     consumerErrors: 0,
   };
   private readonly rejected: Record<string, number> = {};
+  private lastRejection?: { reason: string; atMs: number };
 
   constructor(
     @Inject(MARKET_DATA_CONFIG) private readonly config: MarketDataConfig,
@@ -119,6 +120,7 @@ export class MarketDataProcessor {
   }
 
   private reject(reason: string): void {
+    this.lastRejection = { reason, atMs: Date.now() };
     this.rejected[reason] = (this.rejected[reason] ?? 0) + 1;
   }
 
@@ -276,6 +278,7 @@ export class MarketDataProcessor {
       },
       lastEventAgeAtDeliveryMs: this.lastEventAgeMs ?? null,
       rejected: { ...this.rejected },
+      lastRejection: this.lastRejection ?? null,
     };
   }
 }

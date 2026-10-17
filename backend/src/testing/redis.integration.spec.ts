@@ -118,13 +118,13 @@ integration("real Redis and WebSocket integration", () => {
       expect(snapshot.coverageStart).toBe(start + MINUTE_MS);
       expect(snapshot.ticks.map(t => t.price)).toEqual([100, 102, 100]);
       recovery.disconnected();
-      expect(analysis.getHistory().points).toBe(0);
+      expect(analysis.getHistory().points).toBe(3);
       current += MINUTE_MS;
       recovery.live();
       await waitUntil(() => recovery.getStatus().state === 'LIVE');
       expect(analysis.getStatus().fresh).toBe(false);
       await deliver(90);
-      expect(analysis.getHistory().points).toBe(1);
+      expect(analysis.getHistory().points).toBe(4);
       expect(await cache.recoveryWindow('QQQ')).toHaveLength(4);
       const boundary = current + MINUTE_MS;
       current += 2 * MINUTE_MS;
@@ -134,6 +134,35 @@ integration("real Redis and WebSocket integration", () => {
         status: 'insufficientData', atr: null, alert: false,
       });
       expect(query).not.toHaveBeenCalled();
+      // Repeated recovery with price bursts: preserve committed observations and
+      // coalesce only immediate identical retransmissions, without claiming gap replay.
+      for (let segment = 0; segment < 3; segment++) {
+        const before = (await cache.recoveryWindow('QQQ')).length;
+        recovery.disconnected();
+        expect(analysis.getHistory().points).toBe(before);
+        current += MINUTE_MS;
+        recovery.live();
+        await waitUntil(() => recovery.getStatus().state === 'LIVE');
+        const delivered = processor.getStatus().delivered;
+        const messages = Array.from({ length: 100 }, (_, index) => ({
+          T: 'price' as const, event: 'price', symbol: 'QQQ', currency: 'USD',
+          exchange: 'NASDAQ', timestamp: current / 1000, price: 100 + segment + index / 1000,
+        })).flatMap(message => [message, message]);
+        recovery.accept({ messages, receivedAtMs: current, receivedAtMonotonicMs: performance.now() });
+        await waitUntil(() => processor.getStatus().delivered === delivered + 100);
+        const stored = await cache.recoveryWindow('QQQ');
+        expect(stored).toHaveLength(before + 100);
+        expect(new Set(stored.map(t => t.eventId)).size).toBe(stored.length);
+        expect(analysis.getHistory().points).toBe(stored.length);
+        expect(recovery.getStatus().continuityRestored).toBe(false);
+      }
+      expect(processor.getStatus().duplicates).toBe(300);
+      expect(processor.getStatus().receiptToConsumerLatencyMs.max).toBeLessThan(200);
+      const reportPath = join(__dirname, '../../../../reportes/market_data/twelve_data_mock_recovery.json');
+      mkdirSync(dirname(reportPath), { recursive: true });
+      writeFileSync(reportPath, JSON.stringify({ simulated: true, scope: 'Redis + processor + recovery; no external provider',
+        repeatedRestarts: 3, saved: (await cache.recoveryWindow('QQQ')).length,
+        ingestion: processor.getStatus(), continuity: recovery.getStatus() }, null, 2));
     } finally {
       await recovery.onModuleDestroy(); engine.stop();
     }

@@ -285,6 +285,9 @@ export class MarketRecoveryService implements OnModuleDestroy {
   getStatus() {
     return {
       state: this.state,
+      replaySupported: this.config.provider === "alpaca",
+      continuityRestored: this.config.provider === "alpaca" && this.state === "LIVE",
+      strategy: this.config.provider === "alpaca" ? "EXACT_TRADE_REPLAY" : "RETAIN_HISTORY_WITH_GAP",
       bufferDepth: this.buffer.length + this.priceCount,
       recoveredThroughMs: this.recoveredThroughMs,
       lastError: this.lastError,

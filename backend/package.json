@@ -16,6 +16,8 @@
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:sprints23": "jest --runInBand --cacheDirectory=.cache/jest dynamic-stop-loss hedging-flow.e2e",
+    "audit:security": "node scripts/audit-security.cjs",
     "test:cov": "jest --coverage",
     "test:integration": "node scripts/run-integration.cjs",
     "mock:feed": "ts-node scripts/mock-feed.ts",
@@ -24,6 +26,7 @@
     "market-data:mock": "ts-node src/modules/market-data/testing/run-alpaca-mock.ts",
     "market-data:probe": "ts-node src/modules/market-data/testing/probe-market-data.ts",
     "chart:probe": "node scripts/probe-chart-live.cjs",
+    "market-data:probe:real": "npm run build && node --env-file=../.env scripts/probe-twelve-live.cjs",
     "market-data:mock:twelve": "ts-node src/modules/market-data/testing/run-twelve-data-mock.ts"
   },
   "dependencies": {
