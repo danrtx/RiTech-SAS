@@ -59,6 +59,12 @@ class _DashboardState extends ConsumerState<TelemetryDashboardScreen> {
         backgroundColor: const Color(0xFF0B111A),
         body: SafeArea(
             child: Column(children: [
+          if (telemetry.lastExecution != null)
+            MaterialBanner(
+              content: Text('${telemetry.lastExecution!['simulated'] == true ? 'SIMULACIÓN · ' : ''}'
+                  '${telemetry.lastExecution!['symbol']}: ${telemetry.lastExecution!['status']}'),
+              actions: const [Padding(padding: EdgeInsets.all(8), child: Text('Stop-loss'))],
+            ),
           Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: const BoxDecoration(

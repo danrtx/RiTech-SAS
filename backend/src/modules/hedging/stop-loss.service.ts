@@ -3,9 +3,11 @@ import {
   Logger,
   OnModuleDestroy,
   OnModuleInit,
+  Optional,
 } from "@nestjs/common";
 import { TelemetryGateway } from "../telemetry/telemetry.gateway";
 import { DynamicStopLoss, StopLossSample } from "./dynamic-stop-loss";
+import { PaperExecutionService } from './paper-execution.service';
 
 @Injectable()
 export class StopLossService implements OnModuleInit, OnModuleDestroy {
@@ -15,7 +17,8 @@ export class StopLossService implements OnModuleInit, OnModuleDestroy {
   private scheduled?: NodeJS.Immediate;
   private timer?: NodeJS.Timeout;
   private stopped = false;
-  constructor(private readonly gateway: TelemetryGateway) {}
+  constructor(private readonly gateway: TelemetryGateway,
+    @Optional() private readonly execution?: PaperExecutionService) {}
 
   onModuleInit(): void {
     this.timer = setInterval(
@@ -60,6 +63,7 @@ export class StopLossService implements OnModuleInit, OnModuleDestroy {
           ...trigger,
           executionStatus: "REQUESTED",
         });
+        this.execution?.execute(trigger);
       } catch {
         this.logger.error("stop_loss_notification_failed");
       }
