@@ -2,6 +2,10 @@ import {
   MarketDataConfig,
   parseMarketDataConfig,
 } from '../modules/market-data/market-data.config';
+import {
+  NotificationsConfig,
+  parseNotificationsConfig,
+} from '../modules/notifications/notifications.config';
 
 export interface EnvironmentVariables {
   NODE_ENV: string;
@@ -19,6 +23,7 @@ export interface EnvironmentVariables {
   // Telemetry WS
   WS_PORT: number;
   marketData: MarketDataConfig;
+  notifications: NotificationsConfig;
 }
 
 export const envConfig = (): EnvironmentVariables => ({
@@ -38,4 +43,5 @@ export const envConfig = (): EnvironmentVariables => ({
   REDIS_PASS: process.env.REDIS_PASSWORD || 'ritech_dev',
   WS_PORT: parseInt(process.env.WS_PORT || '4000', 10),
   marketData: parseMarketDataConfig(process.env),
+  notifications: parseNotificationsConfig(process.env),
 });
