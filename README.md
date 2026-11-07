@@ -98,15 +98,16 @@ docker compose logs -f      # ver logs si algo falla
 
 ## Integración continua (CI)
 
-Cada pull request hacia `main` (y cada push a `main`) ejecuta el workflow `.github/workflows/ci.yml` en GitHub Actions con tres trabajos:
+Cada pull request hacia `main` (y cada push a `main`) ejecuta el workflow `.github/workflows/ci.yml` en GitHub Actions con cuatro trabajos:
 
 | Trabajo | Qué valida |
 |---------|------------|
-| **Backend (NestJS)** | ESLint, Jest, compilación y pruebas con Redis real/reconexión simulada |
-| **App móvil (Flutter)** | `flutter analyze` y pruebas unitarias con `flutter test` |
+| **Backend (NestJS)** | ESLint, Jest con cobertura, compilación, pruebas con Redis real/reconexión simulada y NFR-001 (latencia ingesta → hedging) |
+| **App móvil (Flutter)** | `flutter analyze` y pruebas con cobertura (`flutter test --coverage`) |
 | **Paquetes ATR** | Análisis, pruebas y formato del núcleo Dart y su adaptador Flutter |
+| **Definition of Done** | Borrador del acta DoD (cobertura > 80 %, pruebas, latencia y auditoría de seguridad) en el resumen del job; análisis SonarQube si existe el secreto `SONAR_TOKEN` |
 
-Si cualquiera de los dos falla, el PR queda marcado en rojo y no debe unirse a `main`. Los resultados se ven en la pestaña **Checks** del PR o en **Actions** del repositorio.
+Si cualquiera de ellos falla, el PR queda marcado en rojo y no debe unirse a `main`. Los resultados se ven en la pestaña **Checks** del PR o en **Actions** del repositorio.
 
 ### Correr las mismas validaciones en local
 
@@ -127,4 +128,20 @@ flutter analyze --no-fatal-infos
 flutter test
 ```
 
+Evidencia para la DoD en local:
+
+```bash
+cd backend
+npm run test:cov -- --ci --json --outputFile=coverage/jest-results.json
+npm run qa:latency -- --redis          # reporte en reportes/latencia/
+cd ../frontend_mobile && flutter test --coverage --file-reporter=json:coverage/flutter-tests.json
+cd ../backend && npm run qa:dod        # borrador en reportes/dod/
+```
+
 Las pruebas del backend van junto al código con el sufijo `.spec.ts` (por ejemplo `src/modules/health/health.controller.spec.ts`). Las de Flutter van en `frontend_mobile/test/` con el sufijo `_test.dart`.
+
+## Documentación de arquitectura y operación
+
+- [ADR 0001: monolito modular](docs/adr/0001-monolito-modular.md)
+- [Arquitectura implementada (diagramas)](docs/arquitectura.md)
+- [Runbook: despliegue, rollback, observabilidad, recuperación, push FCM e incidentes](docs/runbook.md)
