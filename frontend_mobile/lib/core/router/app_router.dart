@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/telemetry/presentation/screens/telemetry_dashboard_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/alerts/presentation/screens/alerts_screen.dart';
+import '../../features/monitoring/presentation/screens/monitoring_dashboard_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -31,6 +32,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/monitoring',
+        name: 'monitoring',
+        builder: (context, state) => const MonitoringDashboardScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
