@@ -172,7 +172,10 @@ export class MarketDataProcessor {
         let settled = false;
         const work = Promise.resolve().then(() => {
           if (!abort.signal.aborted)
-            return this.consumer.consume(entry.tick, { signal: abort.signal });
+            return this.consumer.consume(entry.tick, {
+              signal: abort.signal,
+              receivedAtMonotonicMs: entry.receivedAtMonotonicMs,
+            });
         });
         void work.then(
           () => {

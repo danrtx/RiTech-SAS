@@ -1,0 +1,67 @@
+{
+  "requirement": "NFR-001",
+  "generatedAt": "2026-11-04T23:28:26.242Z",
+  "environment": {
+    "node": "v24.21.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "configuration": {
+    "ratePerSecond": 200,
+    "durationMs": 30000,
+    "batchSize": 5,
+    "cache": "redis",
+    "pipeline": "AlpacaAdapter → MarketDataProcessor → MarketAtrConsumer → PriceAnalysisService → StopLossService → DynamicStopLoss",
+    "substitutes": [
+      "Redis: instancia real con prefijo temporal (se elimina al terminar)",
+      "ATR: doble sin cálculo",
+      "Socket.IO: gateway sin clientes"
+    ]
+  },
+  "data": {
+    "ticksSent": 6000,
+    "framesSent": 1200,
+    "delivered": 6000,
+    "measured": 6000,
+    "dropped": 0,
+    "pattern": "Trades sintéticos QQQ, precio 500 ± 2 USD (seno), timestamps del reloj local"
+  },
+  "result": {
+    "budgetMs": 200,
+    "sampleWindow": 4096,
+    "withinBudget": true,
+    "budgetExceeded": 0,
+    "slowestSegment": "ingestionQueue",
+    "segments": {
+      "ingestionQueue": {
+        "count": 6000,
+        "p50": 5.022300000000541,
+        "p95": 19.263699999999517,
+        "max": 105.93029999999999,
+        "average": 6.682617433333274
+      },
+      "consumerProcessing": {
+        "count": 6000,
+        "p50": 1.8989000000001397,
+        "p95": 4.179399999997258,
+        "max": 55.46900000000096,
+        "average": 2.279294799999998
+      },
+      "hedgingQueue": {
+        "count": 6000,
+        "p50": 0.2349000000031083,
+        "p95": 0.5076000000008207,
+        "max": 1.3302999999996246,
+        "average": 0.2643884666666779
+      },
+      "total": {
+        "count": 6000,
+        "p50": 7.223899999997229,
+        "p95": 23.231400000000576,
+        "max": 108.03440000000046,
+        "average": 9.226300699999987
+      }
+    }
+  },
+  "verdict": "PASS"
+}

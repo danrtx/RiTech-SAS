@@ -23,6 +23,8 @@ export interface TickDeliveryContext {
   readonly signal: AbortSignal;
   readonly recovery?: boolean;
   readonly restoreAnalysis?: boolean;
+  /** performance.now() al recibir el frame; solo en entregas en vivo (NFR-001). */
+  readonly receivedAtMonotonicMs?: number;
 }
 
 export interface TickConsumer {

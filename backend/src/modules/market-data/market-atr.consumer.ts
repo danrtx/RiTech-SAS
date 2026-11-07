@@ -1,6 +1,7 @@
 import { Inject, Injectable, OnModuleInit, Optional } from "@nestjs/common";
 import { StopLossService } from '../hedging/stop-loss.service';
 import { createHash } from "node:crypto";
+import { performance } from "node:perf_hooks";
 import { MARKET_DATA_CONFIG, MarketDataConfig } from "./market-data.config";
 import { MarketTick } from "./dto/market-tick.dto";
 import {
@@ -43,6 +44,7 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
     context?: TickDeliveryContext,
   ): Promise<void> {
     if (context?.signal.aborted) return;
+    const consumedAtMonotonicMs = performance.now();
     if (
       tick.provider !== this.config.provider ||
       tick.symbol !== this.config.symbol ||
@@ -97,7 +99,16 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
     if (this.ingestion.recovering) this.ingestion.recovered();
     if (result.accepted) {
       await this.analysis.consume(tick, context);
-      if (current()) this.stopLoss?.enqueue(tick);
+      if (current())
+        this.stopLoss?.enqueue(
+          tick,
+          context?.receivedAtMonotonicMs === undefined
+            ? undefined
+            : {
+                receivedAtMonotonicMs: context.receivedAtMonotonicMs,
+                consumedAtMonotonicMs,
+              },
+        );
     }
   }
 
