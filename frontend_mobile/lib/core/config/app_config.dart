@@ -15,4 +15,14 @@ class AppConfig {
     'WS_BASE_URL',
     defaultValue: 'http://localhost:3000/telemetry',
   );
+
+  // Firebase / FCM por ambiente. Vacío = push deshabilitado en ese build.
+  static const String firebaseApiKey = String.fromEnvironment('FIREBASE_API_KEY');
+  static const String firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID');
+  static const String firebaseMessagingSenderId =
+      String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID');
+  static const String firebaseProjectId =
+      String.fromEnvironment('FIREBASE_PROJECT_ID');
+  // Solo web: clave pública VAPID del proyecto Firebase.
+  static const String fcmVapidKey = String.fromEnvironment('FCM_VAPID_KEY');
 }
