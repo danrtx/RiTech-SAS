@@ -1,5 +1,7 @@
 # Sprint 4 — revisión del 1 de noviembre de 2026
 
+Entrega independiente actualizada: [avance de Diego, evidencia y solicitudes al equipo](ENTREGA_DIEGO_Y_DEPENDENCIAS.md). Contrato y validación del futuro dataset: [recepción del histórico](RECEPCION_HISTORICO_BACKTESTING.md).
+
 ## Actualización de integración — 8 de noviembre de 2026
 
 Se integró `origin/main` en `copi` hasta `38c1554` (PR 20), conservando el trabajo local de paper execution y backtesting de `5c15df1`. Se resolvieron los conflictos de `HedgingModule` y `StopLossService` para registrar simultáneamente PaperExecutionService, PipelineLatencyService y PushNotificationService. El constructor conserva el orden de argumentos utilizado por las nuevas pruebas y el benchmark de latencia.
