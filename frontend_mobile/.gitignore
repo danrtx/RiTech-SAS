@@ -47,3 +47,7 @@ app.*.map.json
 # Configuración Firebase por ambiente: se entrega fuera del repositorio (ver docs/runbook.md).
 /android/app/google-services.json
 /ios/Runner/GoogleService-Info.plist
+
+# Valores --dart-define-from-file por ambiente (dart_defines/example.json es la plantilla).
+/dart_defines/*.json
+!/dart_defines/example.json

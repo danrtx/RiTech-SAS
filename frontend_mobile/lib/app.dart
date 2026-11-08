@@ -37,6 +37,9 @@ class _RiTechAppState extends ConsumerState<RiTechApp> {
     _messenger.currentState
       ?..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
+        // Alerta crítica: los 4 s por defecto no dan tiempo de reaccionar.
+        duration: const Duration(seconds: 15),
+        showCloseIcon: true,
         content: Text(
             'Hedging activado en ${alert.symbol}: ${alert.policy.label.toLowerCase()}'),
         action: SnackBarAction(
