@@ -8,7 +8,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { MarketDataFeed } from '../market-data.config';
+import { MarketDataFeed, MarketDataProvider } from '../market-data.config';
 import type { MarketReference } from '../market-reference';
 import {
   InvestmentMetrics,

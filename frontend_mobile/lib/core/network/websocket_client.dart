@@ -53,17 +53,23 @@ class TelemetryWebSocketClient {
     _transport.on(
         'telemetry_tick', (data) => _deliver(data, _messagesController));
     _transport.on('atr_result', (data) => _deliver(data, _atrController));
+    _transport.on('execution_notification', (data) => _deliver(data, _executionController));
+    _transport.on('chart_candle', (data) => _deliver(data, _candlesController));
   }
   final TelemetryTransport _transport;
   final _messagesController =
       StreamController<Map<String, Object?>>.broadcast();
   final _atrController = StreamController<Map<String, Object?>>.broadcast();
+  final _executionController = StreamController<Map<String, Object?>>.broadcast();
+  final _candlesController = StreamController<Map<String, Object?>>.broadcast();
   final _statusController = StreamController<WebSocketStatus>.broadcast();
   bool _disposed = false;
   String? _symbol;
   WebSocketStatus _currentStatus = WebSocketStatus.disconnected;
   Stream<Map<String, Object?>> get messagesStream => _messagesController.stream;
   Stream<Map<String, Object?>> get atrStream => _atrController.stream;
+  Stream<Map<String, Object?>> get executionStream => _executionController.stream;
+  Stream<Map<String, Object?>> get candlesStream => _candlesController.stream;
   Stream<WebSocketStatus> get statusStream => _statusController.stream;
   WebSocketStatus get status => _currentStatus;
 
@@ -110,6 +116,8 @@ class TelemetryWebSocketClient {
     _transport.dispose();
     unawaited(_messagesController.close());
     unawaited(_atrController.close());
+    unawaited(_executionController.close());
+    unawaited(_candlesController.close());
     unawaited(_statusController.close());
   }
 }

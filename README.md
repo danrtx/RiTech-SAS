@@ -4,7 +4,34 @@ Plataforma de cobertura (hedging) sobre el NASDAQ 100: backend NestJS (monolito 
 
 ## Motor ATR de un minuto
 
-El [motor operativo NestJS](backend/README.md) lee ticks de Redis, construye velas UTC, calcula ATR Wilder y publica resultados/alertas por Socket.IO y `GET /atr`. Flutter consume estos eventos y muestra ATR/baseline. Incluye pruebas con Redis real, proveedor simulado, reconexión y referencia pandas. El conector del proveedor de mercado real sigue pendiente de integración por el equipo.
+El [motor operativo NestJS](backend/README.md) recibe precios de Twelve Data, valida ticks, los procesa mediante Redis y calcula ATR Wilder. Publica resultados/alertas por Socket.IO y `GET /atr`. Incluye pruebas con Redis real, proveedor simulado, reconexión y referencia pandas.
+
+El dashboard Flutter muestra la evolución de **QQQ como referencia del Nasdaq 100**, con línea, velas de 1/5/15 minutos, volumen disponible, zoom, cursor OHLC y selección de jornadas. PostgreSQL conserva las observaciones y las velas de cada fecha; al cerrar el mercado o reiniciar la aplicación, el gráfico se consulta desde ese archivo. Las barras históricas de Twelve Data completan el gráfico sin disparar alertas retrospectivas ni alimentar artificialmente el ATR.
+
+### Ejecutar el dashboard web
+
+Con Docker Desktop abierto, Node.js 20 y Flutter estable, desde la raíz:
+
+```bash
+docker compose up -d postgres redis
+cd backend
+npm ci
+npm run start:dev
+```
+
+En otra terminal:
+
+```bash
+cd frontend_mobile
+flutter pub get
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080
+```
+
+Abrir http://127.0.0.1:8080. El backend lee el `.env` existente (`MARKET_DATA_ENABLED=true`, `MARKET_DATA_PROVIDER=twelvedata`, `MARKET_DATA_FEED=realtime`, `MARKET_DATA_SYMBOL=QQQ`, `TWELVE_DATA_API_KEY`). La base se prepara con migraciones al arrancar. La clave permanece en el backend; Flutter usa las URLs locales y admite `--dart-define=API_BASE_URL=...` y `--dart-define=WS_BASE_URL=.../telemetry` para otros hosts. En despliegues HTTPS, usar también URLs HTTPS para el backend.
+
+Se debe mantener el backend ejecutándose para registrar las observaciones del WebSocket. Al iniciar y cada cinco minutos recupera hasta 1.000 barras recientes de Twelve Data; una interrupción más larga puede dejar huecos fuera de esa ventana. Los datos ya guardados no caducan. La vista comienza en la jornada más reciente disponible y permite consultar las anteriores con el calendario.
+
+Validación con datos reales del 7 de octubre de 2026: [archivo y WebSocket](reportes/market_data/chart_live_2026-10-07.json), [navegador](reportes/market_data/chart_browser_2026-10-07.json), [escritorio](reportes/market_data/chart_desktop_2026-10-07.png) y [móvil](reportes/market_data/chart_mobile_2026-10-07.png). Ver contratos, límites y pruebas en el [README del backend](backend/README.md#gráfica-diaria-persistente).
 
 Se conserva [packages/atr_engine](packages/atr_engine/README.md) como biblioteca Dart independiente y referencia de pruebas; su [adaptador Flutter](packages/atr_engine_flutter/README.md) es opcional. El dashboard operativo usa el ATR del backend.
 
@@ -71,15 +98,16 @@ docker compose logs -f      # ver logs si algo falla
 
 ## Integración continua (CI)
 
-Cada pull request hacia `main` (y cada push a `main`) ejecuta el workflow `.github/workflows/ci.yml` en GitHub Actions con tres trabajos:
+Cada pull request hacia `main` (y cada push a `main`) ejecuta el workflow `.github/workflows/ci.yml` en GitHub Actions con cuatro trabajos:
 
 | Trabajo | Qué valida |
 |---------|------------|
-| **Backend (NestJS)** | ESLint, Jest, compilación y pruebas con Redis real/reconexión simulada |
-| **App móvil (Flutter)** | `flutter analyze` y pruebas unitarias con `flutter test` |
+| **Backend (NestJS)** | ESLint, Jest con cobertura, compilación, pruebas con Redis real/reconexión simulada y NFR-001 (latencia ingesta → hedging) |
+| **App móvil (Flutter)** | `flutter analyze` y pruebas con cobertura (`flutter test --coverage`) |
 | **Paquetes ATR** | Análisis, pruebas y formato del núcleo Dart y su adaptador Flutter |
+| **Definition of Done** | Borrador del acta DoD (cobertura > 80 %, pruebas, latencia y auditoría de seguridad) en el resumen del job; análisis SonarQube si existe el secreto `SONAR_TOKEN` |
 
-Si cualquiera de los dos falla, el PR queda marcado en rojo y no debe unirse a `main`. Los resultados se ven en la pestaña **Checks** del PR o en **Actions** del repositorio.
+Si cualquiera de ellos falla, el PR queda marcado en rojo y no debe unirse a `main`. Los resultados se ven en la pestaña **Checks** del PR o en **Actions** del repositorio.
 
 ### Correr las mismas validaciones en local
 
@@ -100,4 +128,20 @@ flutter analyze --no-fatal-infos
 flutter test
 ```
 
+Evidencia para la DoD en local:
+
+```bash
+cd backend
+npm run test:cov -- --ci --json --outputFile=coverage/jest-results.json
+npm run qa:latency -- --redis          # reporte en reportes/latencia/
+cd ../frontend_mobile && flutter test --coverage --file-reporter=json:coverage/flutter-tests.json
+cd ../backend && npm run qa:dod        # borrador en reportes/dod/
+```
+
 Las pruebas del backend van junto al código con el sufijo `.spec.ts` (por ejemplo `src/modules/health/health.controller.spec.ts`). Las de Flutter van en `frontend_mobile/test/` con el sufijo `_test.dart`.
+
+## Documentación de arquitectura y operación
+
+- [ADR 0001: monolito modular](docs/adr/0001-monolito-modular.md)
+- [Arquitectura implementada (diagramas)](docs/arquitectura.md)
+- [Runbook: despliegue, rollback, observabilidad, recuperación, push FCM e incidentes](docs/runbook.md)

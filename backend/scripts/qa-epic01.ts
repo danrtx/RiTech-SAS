@@ -68,6 +68,7 @@ async function main() {
               REDIS_PORT: Number(process.env.REDIS_TEST_PORT ?? 6379),
               REDIS_PASS: process.env.REDIS_TEST_PASSWORD ?? "ritech_dev",
               marketData: parseMarketDataConfig({
+                MARKET_DATA_PROVIDER: 'alpaca',
                 MARKET_DATA_ENABLED: "true",
                 MARKET_DATA_FEED: "mock",
                 MARKET_DATA_WS_URL: url,

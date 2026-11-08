@@ -51,6 +51,7 @@ export class MarketDataProcessor {
     consumerErrors: 0,
   };
   private readonly rejected: Record<string, number> = {};
+  private lastRejection?: { reason: string; atMs: number };
 
   constructor(
     @Inject(MARKET_DATA_CONFIG) private readonly config: MarketDataConfig,
@@ -119,6 +120,7 @@ export class MarketDataProcessor {
   }
 
   private reject(reason: string): void {
+    this.lastRejection = { reason, atMs: Date.now() };
     this.rejected[reason] = (this.rejected[reason] ?? 0) + 1;
   }
 
@@ -170,7 +172,11 @@ export class MarketDataProcessor {
         let settled = false;
         const work = Promise.resolve().then(() => {
           if (!abort.signal.aborted)
-            return this.consumer.consume(entry.tick, { signal: abort.signal });
+            return this.consumer.consume(entry.tick, {
+              signal: abort.signal,
+              // NFR-001: la marca de recepción viaja hasta el stop-loss para medir la latencia.
+              receivedAtMonotonicMs: entry.receivedAtMonotonicMs,
+            });
         });
         void work.then(
           () => {
@@ -276,6 +282,7 @@ export class MarketDataProcessor {
       },
       lastEventAgeAtDeliveryMs: this.lastEventAgeMs ?? null,
       rejected: { ...this.rejected },
+      lastRejection: this.lastRejection ?? null,
     };
   }
 }

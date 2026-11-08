@@ -38,6 +38,7 @@ describe('Recuperación automática del feed', () => {
   };
   let service: MarketDataService;
   const config = parseMarketDataConfig({
+    MARKET_DATA_PROVIDER: 'alpaca',
     MARKET_DATA_ENABLED: 'true',
     MARKET_DATA_FEED: 'mock',
     MARKET_DATA_RECONNECT_BASE_MS: '100',

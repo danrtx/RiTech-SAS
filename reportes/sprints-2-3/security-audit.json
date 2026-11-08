@@ -1,0 +1,82 @@
+{
+  "auditedAt": "2026-10-17T15:11:24.544Z",
+  "scope": "Current working tree configuration and tracked file names/text; optional public TLS handshakes",
+  "verdict": "NOT_APPROVED",
+  "findings": [
+    {
+      "id": "TLS-INBOUND",
+      "severity": "HIGH",
+      "status": "FAIL",
+      "evidence": "backend/src/main.ts: NestFactory.create(AppModule); HTTP listener. No repository evidence of a TLS termination proxy.",
+      "remediation": "Configure a trusted TLS 1.3 endpoint for HTTP and Socket.IO, reject plaintext externally, verify certificate chain, hostname, expiry and TLS 1.2 refusal."
+    },
+    {
+      "id": "TLS-DATASTORES",
+      "severity": "HIGH",
+      "status": "FAIL",
+      "evidence": "Redis client and TypeORM configuration inspected; explicit TLS options are absent in the current configuration.",
+      "remediation": "Enable verified TLS 1.3 for PostgreSQL and Redis; supply trusted CA material and test insecure connection refusal."
+    },
+    {
+      "id": "TLS-PROVIDER-MINIMUM",
+      "severity": "MEDIUM",
+      "status": "FAIL",
+      "evidence": "Market WebSocket socket options inspected. wss alone does not enforce TLS 1.3.",
+      "remediation": "Set and test TLS 1.3 minimum on secure clients. Probe deployed destinations with certificate verification enabled."
+    },
+    {
+      "id": "AES-AT-REST",
+      "severity": "HIGH",
+      "status": "NOT_VERIFIED",
+      "evidence": "docker-compose.yml declares PostgreSQL and Redis named volumes and Redis AOF; no disk, volume or KMS encryption evidence is supplied.",
+      "remediation": "Provide deployment evidence of AES-256 or approved equivalent for volumes, snapshots and backups, including key ownership, access and rotation. AOF is not encryption."
+    },
+    {
+      "id": "SECRET-FILES",
+      "severity": "HIGH",
+      "status": "PASS",
+      "evidence": "No private .env files appear in git ls-files (current index only).",
+      "remediation": "Keep credentials outside source control; rotate any exposed key and assess Git history separately."
+    },
+    {
+      "id": "SECRET-SCAN",
+      "severity": "HIGH",
+      "status": "PASS",
+      "evidence": "No matches in the current tracked text files using the documented heuristic patterns; values are never included in this report.",
+      "remediation": "Review flagged locations locally. This heuristic cannot certify absence of secrets, sensitive runtime logs or historical leaks."
+    },
+    {
+      "id": "RUNTIME-LOGS-AND-KEYS",
+      "severity": "MEDIUM",
+      "status": "NOT_VERIFIED",
+      "evidence": "No production log archive, certificate inventory, KMS policy or rotation evidence is available in the workspace.",
+      "remediation": "Audit deployed logs and key lifecycle with redaction; collect certificate expiry and key rotation evidence without exporting secrets."
+    }
+  ],
+  "probes": [
+    {
+      "host": "ws.twelvedata.com",
+      "requested": "TLSv1.3",
+      "connected": true,
+      "negotiated": "TLSv1.3",
+      "authorized": true,
+      "cipher": "TLS_AES_256_GCM_SHA384",
+      "certificateValidTo": "Dec  6 07:01:08 2026 GMT"
+    },
+    {
+      "host": "ws.twelvedata.com",
+      "requested": "TLSv1.2",
+      "connected": true,
+      "negotiated": "TLSv1.2",
+      "authorized": true,
+      "cipher": "ECDHE-ECDSA-AES128-GCM-SHA256",
+      "certificateValidTo": "Dec  6 07:01:08 2026 GMT"
+    }
+  ],
+  "limitations": [
+    "No production deployment certification",
+    "No private .env contents read",
+    "No Git history or runtime logs certification",
+    "A successful TLS 1.3 probe does not prove TLS 1.2 refusal"
+  ]
+}

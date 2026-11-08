@@ -4,3 +4,6 @@ analyzer:
   exclude:
     - build/**
     - "**/*.g.dart"
+    - web/**
+    - android/**
+    - ios/**

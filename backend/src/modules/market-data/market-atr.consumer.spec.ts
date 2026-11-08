@@ -9,6 +9,7 @@ import { IngestionState } from "./ingestion.state";
 
 describe("Market data to ATR delivery", () => {
   const config = parseMarketDataConfig({
+    MARKET_DATA_PROVIDER: 'alpaca',
     MARKET_DATA_ENABLED: "true",
     MARKET_DATA_FEED: "mock",
   });

@@ -16,13 +16,22 @@
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:sprints23": "jest --runInBand --cacheDirectory=.cache/jest dynamic-stop-loss hedging-flow.e2e",
+    "backtest": "ts-node scripts/backtest.ts",
+    "backtest:validate": "ts-node scripts/backtest.ts --validate-only",
+    "qa:diego": "node scripts/verify-diego.cjs",
+    "audit:security": "node scripts/audit-security.cjs",
     "test:cov": "jest --coverage",
     "test:integration": "node scripts/run-integration.cjs",
     "mock:feed": "ts-node scripts/mock-feed.ts",
     "smoke:local": "ts-node scripts/smoke-local.ts",
     "qa:epic01": "ts-node scripts/qa-epic01.ts",
+    "qa:latency": "ts-node scripts/qa-latency.ts",
+    "qa:dod": "node scripts/dod-report.cjs",
     "market-data:mock": "ts-node src/modules/market-data/testing/run-alpaca-mock.ts",
     "market-data:probe": "ts-node src/modules/market-data/testing/probe-market-data.ts",
+    "chart:probe": "node scripts/probe-chart-live.cjs",
+    "market-data:probe:real": "npm run build && node --env-file=../.env scripts/probe-twelve-live.cjs",
     "market-data:mock:twelve": "ts-node src/modules/market-data/testing/run-twelve-data-mock.ts"
   },
   "dependencies": {
@@ -35,6 +44,7 @@
     "@nestjs/websockets": "^10.3.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "firebase-admin": "^13.10.0",
     "ioredis": "^5.3.2",
     "pg": "^8.11.3",
     "reflect-metadata": "^0.2.1",
@@ -74,7 +84,15 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.(t|j)s",
+      "!**/*.spec.ts",
+      "!**/testing/**",
+      "!main.ts"
+    ],
+    "coverageReporters": [
+      "lcov",
+      "json-summary",
+      "text-summary"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

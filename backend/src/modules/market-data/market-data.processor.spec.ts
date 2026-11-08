@@ -38,7 +38,7 @@ describe('Procesador de ticks con cola acotada', () => {
     env: Record<string, string> = {},
     override?: TickConsumer,
   ): MarketDataProcessor {
-    const config = parseMarketDataConfig({ MARKET_DATA_FEED: 'mock', ...env });
+    const config = parseMarketDataConfig({ MARKET_DATA_PROVIDER: 'alpaca', MARKET_DATA_FEED: 'mock', ...env });
     const instance = new MarketDataProcessor(
       config,
       new AlpacaAdapter(config),

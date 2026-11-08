@@ -1,5 +1,7 @@
-import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
+import { Inject, Injectable, OnModuleInit, Optional } from "@nestjs/common";
+import { StopLossService } from '../hedging/stop-loss.service';
 import { createHash } from "node:crypto";
+import { performance } from "node:perf_hooks";
 import { MARKET_DATA_CONFIG, MarketDataConfig } from "./market-data.config";
 import { MarketTick } from "./dto/market-tick.dto";
 import {
@@ -27,6 +29,7 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
     private readonly analysis: PriceAnalysisService,
     private readonly ingestion: IngestionState,
     private readonly clock: MarketClock,
+    @Optional() private readonly stopLoss?: StopLossService,
   ) {}
 
   onModuleInit() {
@@ -41,7 +44,13 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
     context?: TickDeliveryContext,
   ): Promise<void> {
     if (context?.signal.aborted) return;
-    if (tick.symbol !== this.config.symbol || tick.feed !== this.config.feed)
+    // NFR-001: inicio del tramo consumerProcessing (fin de la espera en la cola de ingesta).
+    const consumedAtMonotonicMs = performance.now();
+    if (
+      tick.provider !== this.config.provider ||
+      tick.symbol !== this.config.symbol ||
+      tick.feed !== this.config.feed
+    )
       throw new Error("market_data_tick_source_mismatch");
     const generation = this.generation;
     const current = () =>
@@ -68,15 +77,18 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
         ]),
       )
       .digest("hex");
-    const result = await this.cache.appendTick({
-      id,
-      symbol: tick.symbol,
-      price: tick.price,
-      volume: tick.volume,
-      eventTime: tick.eventTimeMs,
-      receivedAt: tick.receivedAtMs,
-      source: tick,
-    }, context?.recovery ?? false);
+    const result = await this.cache.appendTick(
+      {
+        id,
+        symbol: tick.symbol,
+        price: tick.price,
+        volume: tick.volume,
+        eventTime: tick.eventTimeMs,
+        receivedAt: tick.receivedAtMs,
+        source: tick,
+      },
+      context?.recovery ?? false,
+    );
     if (!current()) return;
     if (!result.accepted && result.reason !== "duplicate")
       throw new Error(`market_data_cache_${result.reason}`);
@@ -86,13 +98,41 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
     }
     this.needsBoundary = false;
     if (this.ingestion.recovering) this.ingestion.recovered();
-    if (result.accepted) await this.analysis.consume(tick, context);
+    if (result.accepted) {
+      await this.analysis.consume(tick, context);
+      if (current())
+        // La traza de latencia solo acompaña a los ticks en vivo (los que traen receivedAtMonotonicMs).
+        this.stopLoss?.enqueue(
+          tick,
+          context?.receivedAtMonotonicMs === undefined
+            ? undefined
+            : {
+                receivedAtMonotonicMs: context.receivedAtMonotonicMs,
+                consumedAtMonotonicMs,
+              },
+        );
+    }
   }
 
   invalidate(reason: TickInvalidationReason): void {
+    this.stopLoss?.invalidate();
     this.generation++;
     this.ingestion.beginRecovery();
-    if (['connection_unavailable', 'shutdown', 'consumer_error', 'consumer_timeout', 'queue_overflow', 'stale_delivery'].includes(reason)) {
+    if (this.config.provider === "twelvedata") {
+      // No exact replay is available: never evaluate a window across a gap.
+      this.needsBoundary = true;
+      this.atr.invalidateSymbol(this.config.symbol);
+      this.analysis.suspend(reason);
+    } else if (
+      [
+        "connection_unavailable",
+        "shutdown",
+        "consumer_error",
+        "consumer_timeout",
+        "queue_overflow",
+        "stale_delivery",
+      ].includes(reason)
+    ) {
       this.atr.suspendSymbol(this.config.symbol);
       this.analysis.suspend(reason);
     } else {
@@ -101,9 +141,30 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
       this.analysis.invalidate(reason);
     }
   }
+  async prepareLiveRestart(
+    startedAt: number,
+    signal: AbortSignal,
+  ): Promise<void> {
+    signal.throwIfAborted();
+    const boundary = minuteStart(startedAt) + MINUTE_MS;
+    const retained = (await this.cache.recoveryWindow(this.config.symbol)).filter(
+      tick => tick.provider === this.config.provider && tick.feed === this.config.feed,
+    );
+    signal.throwIfAborted();
+    await this.cache.advanceCoverage(this.config.symbol, boundary);
+    signal.throwIfAborted();
+    this.atr.invalidateSymbol(this.config.symbol, boundary);
+    // Retain visible history, but do not evaluate WINDOW rules across an unreplayed gap.
+    this.analysis.markCoverageStart(startedAt);
+    this.analysis.restore(retained, false);
+    this.needsBoundary = false;
+  }
   async prepareRecovery(hasHistory: boolean, startedAt: number): Promise<void> {
     if (!hasHistory && this.needsBoundary)
-      await this.cache.advanceCoverage(this.config.symbol, minuteStart(startedAt) + MINUTE_MS);
+      await this.cache.advanceCoverage(
+        this.config.symbol,
+        minuteStart(startedAt) + MINUTE_MS,
+      );
     this.needsBoundary = false;
   }
 }

@@ -1,8 +1,61 @@
 # Backend: ATR, caché y validación de streaming
 
+## Gráfica diaria persistente
+
+El módulo `market-chart` archiva los precios reales de **Twelve Data / QQQ** y las velas de un minuto en PostgreSQL. QQQ se identifica como ETF de referencia (`ETF_PROXY`); no se presenta como una cotización exacta de NDX. La gráfica Flutter ofrece línea, velas, agregación 5/15 minutos, volumen, zoom, cursor OHLC y consulta por fecha. El escenario ×2 es una comparación académica contra la apertura registrada de QQQ.
+
+### Archivo y recuperación
+
+- `market_chart_observations`: cada observación validada con ID local, precio, hora del proveedor, hora de recepción y fecha de Nueva York. Son observaciones de precios, no operaciones con ID de bolsa.
+- `market_chart_candles`: OHLC por minuto, fecha, origen, volumen disponible, observaciones y revisión. Observación y actualización de vela se guardan en una transacción antes de emitir `chart_candle`.
+- Se respetan el orden temporal, las observaciones que comparten segundo y los cambios de horario de Nueva York. Reintentar el mismo ID no duplica registros.
+- Al arrancar y cada cinco minutos, una sola consulta REST `/time_series` recupera hasta 1.000 barras de un minuto, `timezone=UTC`, `exchange=NASDAQ`, `prepost=false`. No hay una consulta al proveedor por cada usuario. `CHART_HISTORY_ENABLED=false` desactiva esta recuperación, manteniendo el archivo del stream.
+- Solo las barras ya cerradas y con OHLC válido sustituyen las velas muestreadas; un precio tardío no modifica los OHLC consolidados. El volumen del stream queda `null`: no se convierte el volumen acumulado del día en volumen por operación.
+- Las fechas se asignan a `America/New_York`. El gráfico cubre la ventana regular habitual, lunes a viernes 09:30–16:00 ET. No inventa barras para minutos vacíos. El estado horario **no es un calendario oficial de festivos o cierres anticipados**.
+- Las tablas no tienen TTL. El cierre no borra ni reinicia una jornada: queda consultable por fecha. Al reiniciar, se carga desde PostgreSQL, incluso si el proveedor está deshabilitado. La ventana REST de 1.000 barras no garantiza rellenar interrupciones arbitrariamente largas; la sesión más antigua recuperada puede ser parcial.
+- El archivo admite observaciones demoradas hasta 24 horas para representar su instante original. Esto **no modifica** `MARKET_DATA_MAX_TICK_AGE_MS`, los descartes del consumidor operativo, ATR, reglas ni eventos existentes. Una gráfica con precios no acredita que los requisitos de latencia para decisiones se hayan satisfecho.
+- La cola está acotada a 5.000 observaciones; ante errores se reintenta tres veces con el mismo ID, se contabiliza el descarte y se registra un error seguro. Los OHLC disponibles se reconcilian después por REST; no se reconstruyen ticks individuales inventados.
+
+### Contratos nuevos
+
+| Ruta/evento | Uso |
+| --- | --- |
+| `GET /market-data/chart` | Jornada más reciente guardada, o fecha actual si aún no hay datos. |
+| `GET /market-data/chart?symbol=QQQ&date=2026-10-06` | Una jornada concreta; una fecha válida sin registros devuelve `candles: []`. |
+| Socket.IO `/telemetry`, evento `chart_candle` | Vela de un minuto confirmada en PostgreSQL, enviada a la suscripción existente `subscribe_symbol: {symbol:"QQQ"}`. |
+
+La respuesta HTTP incluye `symbol`, `provider`, `targetIndex`, `instrumentType`, `timeZone`, `interval`, `date`, `today`, `availableDates` (hasta 366 jornadas), `session`, `sessionTime`, `generatedAtMs`, `stream`, `storage`, `summary` y `candles`.
+
+Cada vela contiene `symbol`, `date`, `startTimeMs`, `timeLabel` (ET), `open`, `high`, `low`, `close`, `volume`, `observations`, `source` (`stream`/`provider_ohlc`) y `updatedAtMs`. `summary` compara el último cierre disponible con la primera apertura registrada; puede ser una jornada parcial. Fechas inválidas/futuras y símbolos distintos de QQQ se rechazan con HTTP 400. Las jornadas más antiguas siguen disponibles por fecha explícita aunque no aparezcan en `availableDates`.
+
+El frontend combina el snapshot HTTP con los eventos por minuto y revisión, consulta nuevamente cada 15 segundos y después de reconectar. Así obtiene también las correcciones REST y recupera eventos perdidos. Conserva la gráfica cargada ante una desconexión; las respuestas tardías de una fecha anterior no reemplazan la selección actual. `Conectado` describe la conexión al backend y `Precio reciente` requiere datos recientes; una sesión archivada se rotula `Histórico`.
+
+Los formatos de `/market-data/status`, `/market-data/history`, `/market-data/rules`, `/atr` y sus eventos previos se conservan. No se crean reglas de alertas desde esta funcionalidad. Las claves de proveedor no llegan al navegador ni a los reportes.
+
+### Migraciones y comprobación
+
+TypeORM aplica automáticamente `MarketChartArchive1791345600000` al iniciar; `synchronize` queda desactivado también en desarrollo. La cuenta PostgreSQL usada por el backend necesita permisos para crear estas tablas y registrar la migración. El volumen Docker conserva los datos entre reinicios; no eliminarlo si se desea conservar las jornadas.
+
+```bash
+# Con PostgreSQL/Redis locales iniciados:
+npm run lint
+RUN_CHART_DB_TESTS=1 npm test -- --runInBand
+npm run build
+# Backend con datos reales, durante una sesión con publicaciones:
+npm run chart:probe -- --require-live
+```
+
+La prueba PostgreSQL usa un esquema temporal exclusivo que elimina al finalizar; no borra datos del archivo operativo. Comprueba transacciones, idempotencia, OHLC fuera de orden, recuperación al reconectar y consolidación histórica. CI ejecuta estas pruebas en PostgreSQL 16 y también compila Flutter Web.
+
+`chart:probe` solo lee: consulta la gráfica, comprueba una jornada anterior y confirma que un evento WebSocket ya existe en PostgreSQL. Fuera de horario, omitir `--require-live` para permitir que no se observe un evento nuevo durante los 30 segundos de prueba. `CHART_PROBE_URL` permite otra URL base; `CHART_ARCHIVE_URL` permite contrastar con otra instancia del mismo archivo, iniciada con `MARKET_DATA_ENABLED=false`, `CHART_HISTORY_ENABLED=false` y un prefijo Redis aislado. `--output=ruta.json` guarda evidencia sin credenciales.
+
+El 7 de octubre de 2026 se verificaron 293 velas del día, 390 de la jornada anterior, un evento real ya persistido, y lectura idéntica desde una segunda instancia sin proveedor activo. La prueba de navegador verificó línea/5m, zoom, historial, conservación ante fallo HTTP y diseños 1440×1200 y 390×980. Reportes en `../reportes/market_data/chart_*_2026-10-07.*`. La compilación web JavaScript funciona; Flutter avisa que la dependencia existente `socket_io_common` no supera su comprobación opcional de WebAssembly.
+
+Documentación del proveedor: [time series de Twelve Data](https://twelvedata.com/docs#time-series) y [zonas horarias](https://support.twelvedata.com/en/articles/5745849-timezones).
+
 ## Enunciado RiTech: variación del índice ×2
 
-El modelo académico `SIMPLE_2X` calcula variación de la inversión = variación de la referencia ×2, sin acumular ventanas ni simular una orden al broker. Los endpoints y eventos incluyen `marketReference`: QQQ se declara `ETF_PROXY`, `matchesRequiredIndex:false`; no es NDX. Los datos del mock llevan `simulated:true`. El conector Alpaca actual no proporciona el índice exigido por el enunciado.
+El modelo académico `SIMPLE_2X` calcula variación de la inversión = variación de la referencia ×2, sin acumular ventanas ni simular una orden al broker. Los endpoints y eventos incluyen `marketReference`: QQQ se declara `ETF_PROXY`, `matchesRequiredIndex:false`; no es NDX. Los datos del mock llevan `simulated:true`. El feed QQQ no proporciona la cotización exacta del índice exigido por el enunciado.
 
 Las reglas admiten dos referencias explícitas:
 
@@ -27,7 +80,7 @@ Ejemplo de cuerpo para `PUT /market-data/rules/inversion-ritech` (usar fecha rea
 
 Con referencia 20000, un valor 20400 da +2% en la referencia, +4% en la inversión y valor estimado 10400; con 19600 da -2%, -4% y 9600. `referenceMode`, `referencePrice` y `referenceTimeMs` identifican la base del cálculo. `investment_update` y `price_alert` conservan las señales de revisión de ganancia/riesgo. El capital no se actualiza con cada tick. No hay capitalización diaria, comisiones ni contabilidad de posiciones; el saldo puede ser negativo si así resulta de la fórmula académica.
 
-Las reglas siguen en memoria: se conservan durante reconexiones, pero deben cargarse otra vez después de reiniciar el backend. Este cambio se limita al backend de ingesta/análisis y pruebas; la interfaz móvil requiere que su responsable presente la nueva referencia y los metadatos.
+Las reglas siguen en memoria: se conservan durante reconexiones, pero deben cargarse otra vez después de reiniciar el backend. Su gestión continúa por API; el nuevo dashboard de gráficas no crea reglas ni simula una posición de inversión.
 
 ### Consulta del índice NDX real por cierre diario
 
@@ -57,11 +110,11 @@ El cálculo operativo vive en `src/modules/atr/` y se conecta al servicio Redis 
 
 ## Épica 01: conector de mercado integrado
 
-El flujo operativo es Alpaca/mock → MarketDataProcessor → MarketAtrConsumer → Redis → PriceAnalysisService/Socket.IO, más el scheduler ATR cada minuto. Se preservan eventTimeMs y receivedAtMs del conector; el ID Redis es un hash estable de proveedor, feed, símbolo, bolsa, fecha UTC e ID de operación. No se publica dos veces el tick. Redis admite la tolerancia futura configurada del conector sin cambiar la fecha del proveedor.
+El flujo operativo principal es Twelve Data → MarketDataProcessor → MarketAtrConsumer → Redis → PriceAnalysisService/Socket.IO, más el scheduler ATR cada minuto. El archivo PostgreSQL de gráficas sigue la ruta independiente descrita arriba. Alpaca es un proveedor opcional seleccionado explícitamente. Se preservan eventTimeMs y receivedAtMs del conector; el ID Redis es un hash de proveedor, feed, símbolo, bolsa, fecha UTC e identificador de observación/operación. No se publica dos veces el tick. Redis admite la tolerancia futura configurada del conector sin cambiar la fecha del proveedor.
 
 Los eventos de inversión y sus endpoints siguen el contrato de Dylan: price_alert mide cruce porcentual e investment_update presenta el modelo ×2. volatility_alert corresponde exclusivamente al ATR; las dos señales no se sustituyen entre sí.
 
-Para probar el conector integrado, arrancar Docker Compose y abrir dos terminales en backend. Primera:
+Para probar específicamente la compatibilidad con el mock de Alpaca, arrancar Docker Compose y abrir dos terminales en backend. Primera:
 
 ```powershell
 npm run market-data:mock
@@ -72,6 +125,7 @@ Segunda:
 ```powershell
 $env:MOCK_FEED_URL = ''
 $env:MARKET_DATA_ENABLED = 'true'
+$env:MARKET_DATA_PROVIDER = 'alpaca'
 $env:MARKET_DATA_FEED = 'mock'
 $env:MARKET_DATA_SYMBOL = 'QQQ'
 $env:MARKET_DATA_WS_URL = 'ws://127.0.0.1:8765/v2/mock'
@@ -82,9 +136,11 @@ npm run start:dev
 
 Consultar /market-data/status, /market-data/history y /atr. Flutter selecciona QQQ por defecto; MARKET_SYMBOL permite otro símbolo con dart-define. QQQ es una referencia del Nasdaq 100, no se renombra a NDX. El motor necesita 14 velas completas para ATR y 20 ATR anteriores para baseline: aproximadamente 34–35 minutos desde el arranque sin historial, con estos defaults. La paridad numérica se prueba automáticamente con reloj controlado, sin esperar ese tiempo.
 
-El heartbeat WebSocket utiliza ping/pong (500 ms de intervalo y 500 ms de plazo por defecto); no depende de que el mercado produzca operaciones. Detecta una ruta silenciosa y activa la reconexión con autenticación/suscripción. Los tiempos bajo proveedor real siguen sujetos a red y disponibilidad.
+El heartbeat de Alpaca utiliza ping/pong (500 ms de intervalo y 500 ms de plazo por defecto); Twelve Data utiliza su acción `heartbeat` (10 s de intervalo y plazo por defecto). No dependen de que el mercado produzca operaciones. Detectan una ruta silenciosa y activan la reconexión con autenticación/suscripción. Los tiempos bajo proveedor real siguen sujetos a red y disponibilidad.
 
-**Recuperación histórica:** al iniciar o reconectar, MarketRecoveryService pausa el análisis y conserva la ventana existente. Consulta el historial desde el último tick persistido, con solapamiento inclusivo, pagina y combina el resultado con los ticks que siguen llegando por WebSocket. Redis deduplica y permite reparar minutos sellados exclusivamente durante esta recuperación. Después se reconstruyen la ventana de precios y ATR antes de habilitar nuevas señales. Los ticks y alertas históricos no se publican como eventos nuevos. No se garantiza entrega exactamente una vez de todos los eventos al teléfono: la continuidad verificada corresponde a la ventana del backend.
+**Recuperación histórica de Alpaca:** al iniciar o reconectar, MarketRecoveryService pausa el análisis y conserva la ventana existente. Consulta el historial desde el último tick persistido, con solapamiento inclusivo, pagina y combina el resultado con los ticks que siguen llegando por WebSocket. Redis deduplica y permite reparar minutos sellados exclusivamente durante esta recuperación. Después se reconstruyen la ventana de precios y ATR antes de habilitar nuevas señales. Los ticks y alertas históricos no se publican como eventos nuevos. No se garantiza entrega exactamente una vez de todos los eventos al teléfono: la continuidad verificada corresponde a la ventana del backend.
+
+**Twelve Data:** no ofrece replay exacto de estas observaciones. La reconexión reinicia la cobertura del análisis/ATR desde una nueva frontera de minuto; las barras REST se utilizan para el archivo de gráficas y no se convierten en ticks para el motor de decisiones.
 
 El feed IEX usa [Historical trades de Alpaca](https://docs.alpaca.markets/us/reference/stocktrades-1), con las credenciales configuradas y el mismo feed del socket. El mock local sirve ese contrato REST en el mismo puerto del WebSocket. La integración está validada localmente; faltan pruebas con los permisos, disponibilidad y latencia de una cuenta real. No combinar el mock antiguo (`mock:feed`) con MARKET_DATA_ENABLED=true.
 

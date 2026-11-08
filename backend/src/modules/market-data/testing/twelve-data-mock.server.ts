@@ -5,6 +5,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 export class TwelveDataMockServer {
   private server?: WebSocketServer;
   private readonly subscribed = new Set<WebSocket>();
+  private readonly silent = new WeakSet<WebSocket>();
   readonly commands: Record<string, unknown>[] = [];
   connections = 0;
 
@@ -12,6 +13,7 @@ export class TwelveDataMockServer {
     private readonly options: {
       port?: number;
       replyHeartbeat?: boolean;
+      replyPong?: boolean;
       replySubscription?: boolean;
       rejectCode?: number;
     } = {},
@@ -24,12 +26,16 @@ export class TwelveDataMockServer {
       path: '/v2/mock',
       maxPayload: 65536,
       perMessageDeflate: false,
+      autoPong: false,
     });
     this.server = server;
     server.on('error', () => undefined);
     server.on('connection', (socket, request) => {
       this.connections++;
       socket.on('error', () => undefined);
+      socket.on('ping', data => {
+        if (!this.silent.has(socket) && this.options.replyPong !== false) socket.pong(data);
+      });
       socket.on('close', () => this.subscribed.delete(socket));
       const key = new URL(
         request.url ?? '/',
@@ -48,6 +54,7 @@ export class TwelveDataMockServer {
         return;
       }
       socket.on('message', (raw) => {
+        if (this.silent.has(socket)) return;
         let command: Record<string, unknown>;
         try {
           command = JSON.parse(raw.toString());
@@ -112,7 +119,7 @@ export class TwelveDataMockServer {
 
   send(frame: unknown): void {
     for (const socket of this.subscribed) {
-      if (socket.readyState === WebSocket.OPEN)
+      if (socket.readyState === WebSocket.OPEN && !this.silent.has(socket))
         socket.send(JSON.stringify(frame));
     }
   }
@@ -120,6 +127,10 @@ export class TwelveDataMockServer {
   disconnectClients(): void {
     for (const socket of this.subscribed)
       socket.close(1001, 'controlled mock disconnect');
+  }
+
+  silenceClients(): void {
+    for (const socket of this.subscribed) this.silent.add(socket);
   }
 
   async stop(): Promise<void> {

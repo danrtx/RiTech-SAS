@@ -115,13 +115,18 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
       for _, id in ipairs(ids) do table.insert(result, redis.call('HGET', KEYS[2], id)) end
       return result`, 2, ...this.keys(symbol).slice(0, 2));
     if (!Array.isArray(raw)) throw new Error('Invalid recovery window');
-    const ticks = raw.map(item => (JSON.parse(String(item)) as { tick: Tick }).tick.source)
+    // Redis sorts equal timestamps by member ID, not arrival order. Preserve
+    // the stored sequence before dropping the cache envelope (UUID price IDs).
+    const envelopes = raw.map(item => JSON.parse(String(item)) as { tick: Tick; sequence: number });
+    envelopes.sort((a, b) => a.sequence - b.sequence);
+    const ticks = envelopes.map(item => item.tick.source)
       .filter((tick): tick is MarketTick => !!tick && tick.symbol === symbol);
     return ticks.sort((a, b) => {
       const at = parseEventTime(a.eventTime)?.ns;
       const bt = parseEventTime(b.eventTime)?.ns;
       if (at === undefined || bt === undefined) throw new Error('Invalid persisted market time');
-      return at < bt ? -1 : at > bt ? 1 : Number(a.eventId) - Number(b.eventId);
+      return at < bt ? -1 : at > bt ? 1 : (a.provider === 'twelvedata' || b.provider === 'twelvedata')
+        ? 0 : Number(a.eventId) - Number(b.eventId);
     });
   }
   async advanceCoverage(symbol: string, boundary: number): Promise<void> {
@@ -203,7 +208,8 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
       if (a.source && b.source) {
         const at = parseEventTime(a.source.eventTime)!.ns;
         const bt = parseEventTime(b.source.eventTime)!.ns;
-        return at < bt ? -1 : at > bt ? 1 : Number(a.source.eventId) - Number(b.source.eventId);
+        return at < bt ? -1 : at > bt ? 1 : (a.source.provider === 'twelvedata' || b.source.provider === 'twelvedata')
+          ? a.sequence - b.sequence : Number(a.source.eventId) - Number(b.source.eventId);
       }
       return a.eventTime - b.eventTime || a.sequence - b.sequence;
     });

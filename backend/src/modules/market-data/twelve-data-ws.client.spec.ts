@@ -136,6 +136,20 @@ describe('WebSocket Twelve Data', () => {
     expect(client.getStatus().state).toBe('STOPPED');
   });
 
+  it('detects silent transport loss under 2s independently of the 10s application heartbeat', async () => {
+    await setup({ replyPong: false }, {
+      MARKET_DATA_HEARTBEAT_MS: '10000', MARKET_DATA_HEARTBEAT_TIMEOUT_MS: '10000',
+    });
+    const failed = firstValueFrom(client.status$.pipe(
+      filter(status => status.state === 'DEGRADED'), timeout(1900),
+    ));
+    const started = performance.now();
+    await client.start();
+    expect((await failed).lastError?.reason).toBe('heartbeat_timeout');
+    expect(performance.now() - started).toBeLessThan(1900);
+    expect(mock.commands.filter(command => command.action === 'heartbeat')).toHaveLength(0);
+  });
+
   it('rechaza una suscripción ausente o de otro símbolo y conserva el fallo permanente', async () => {
     await setup();
     await client.start();

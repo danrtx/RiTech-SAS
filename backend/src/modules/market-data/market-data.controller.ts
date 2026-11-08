@@ -35,11 +35,24 @@ export class MarketDataController {
 
   @Get('status')
   status() {
+    const connection = this.client.getStatus();
+    const analysis = this.analysis.getStatus();
+    const ingestion = this.processor.getStatus();
+    const recovery = this.service.getStatus();
+    const blockingReasons: string[] = [];
+    if (connection.state !== 'LIVE') blockingReasons.push('TRANSPORT_UNAVAILABLE');
+    if (!analysis.fresh) blockingReasons.push('NO_FRESH_PRICES');
+    if (!analysis.marketReference.matchesRequiredIndex) blockingReasons.push('NDX_SOURCE_REQUIRED');
+    if (!recovery.continuity?.continuityRestored) blockingReasons.push('EXACT_CONTINUITY_UNAVAILABLE');
     return {
-      connection: this.client.getStatus(),
-      ingestion: this.processor.getStatus(),
-      recovery: this.service.getStatus(),
-      analysis: this.analysis.getStatus(),
+      connection, ingestion, recovery, analysis,
+      readiness: {
+        transportReady: connection.state === 'LIVE',
+        freshDataReady: connection.state === 'LIVE' && ingestion.live && analysis.fresh,
+        requiredIndexAvailable: analysis.marketReference.matchesRequiredIndex,
+        exactContinuityReady: recovery.continuity?.continuityRestored ?? false,
+        blockingReasons,
+      },
     };
   }
 

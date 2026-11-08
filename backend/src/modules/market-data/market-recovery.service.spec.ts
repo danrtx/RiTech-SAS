@@ -33,6 +33,7 @@ describe('Recovery coordinator', () => {
   const now = Date.now();
   beforeEach(() => {
     const config = parseMarketDataConfig({
+      MARKET_DATA_PROVIDER: 'alpaca',
       MARKET_DATA_ENABLED: 'true',
       MARKET_DATA_FEED: 'mock',
       MARKET_DATA_RECOVERY_TIMEOUT_MS: '150',

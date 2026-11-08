@@ -17,6 +17,7 @@ import type { PriceAlert } from '../market-data/dto/price-alert.dto';
 import type { TickInvalidationReason } from '../market-data/ports/tick-consumer.interface';
 import type { MarketDataFeed } from '../market-data/market-data.config';
 import type { InvestmentUpdate } from '../hedging/investment-analysis.service';
+import type { ChartCandle } from '../market-chart/chart.types';
 
 export class TelemetrySubscriptionDto {
   @IsString()
@@ -105,6 +106,10 @@ export class TelemetryGateway
     });
   }
 
+  broadcastExecutionNotification(event: Record<string, unknown> & { symbol: string }) {
+    this.server?.to(`symbol:${event.symbol}`).emit('execution_notification', event);
+  }
+
   broadcastAtr(result: AtrResult) {
     this.latestAtr.set(result.symbol, result);
     this.server?.to(`symbol:${result.symbol}`).emit("atr_result", result);
@@ -120,6 +125,10 @@ export class TelemetryGateway
       timestamp: tick.eventTime,
       emittedAtMs: Date.now(),
     });
+  }
+
+  broadcastChartCandle(candle: ChartCandle): void {
+    this.server?.to(`symbol:${candle.symbol}`).emit('chart_candle', candle);
   }
 
   broadcastPriceAlert(alert: PriceAlert): void {
