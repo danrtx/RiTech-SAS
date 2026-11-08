@@ -67,6 +67,16 @@ App móvil: volver a publicar el build anterior en el canal interno. Los payload
 | App | Registrar en el proyecto Firebase la app Android `com.ritechsas.ritech_mobile` y la iOS `com.ritechsas.ritechMobile`. Ejecutar con `--dart-define=FIREBASE_API_KEY=… FIREBASE_APP_ID=… FIREBASE_MESSAGING_SENDER_ID=… FIREBASE_PROJECT_ID=…` (web: también `FCM_VAPID_KEY`). Opcionalmente colocar `android/app/google-services.json` y `ios/Runner/GoogleService-Info.plist`; están en `.gitignore`. iOS: subir la clave APNs (.p8) en la consola de Firebase y activar Push Notifications en el perfil de firma; `Runner.entitlements` usa `aps-environment=development`. Emulador Android: `API_BASE_URL=http://10.0.2.2:3000`. |
 | Rotación | Crear una clave nueva, actualizar `FCM_CREDENTIALS_PATH`, reiniciar, verificar `/notifications/status`, borrar la clave vieja en la consola de GCP. |
 
+Valores de la app por ambiente: copiar `frontend_mobile/dart_defines/example.json` a `dev.android.json` (ignorado por git) con los datos de `firebase apps:sdkconfig android`.
+
+**Problemas conocidos al compilar Android en Windows**
+
+| Síntoma | Causa | Solución |
+| --- | --- | --- |
+| `Unable to establish loopback connection` | La JVM no puede crear sockets en un `TEMP` con ruta larga | `$env:TMP='C:\Temp'; $env:TEMP='C:\Temp'` antes de compilar |
+| `Failed to create parent directory 'C:\Users\NOMBRE'` (ruta con `\ `) | `--dart-define-from-file` y la caché incremental escapan mal los espacios de la ruta del repo | Pasar cada valor con `--dart-define=CLAVE=valor` y ejecutar `flutter clean` antes de compilar con valores nuevos |
+| La app muestra "Sin conexión" en el emulador | Otro proceso ocupa `127.0.0.1:3000` en el host (`10.0.2.2` apunta ahí) | Levantar el backend con `PORT=3001` y usar `API_BASE_URL=http://10.0.2.2:3001` |
+
 **Verificación**: `GET /notifications/status` → `sender: "fcm"`. Registrar un dispositivo desde la app (estado `registered`) y provocar una caída con el mock: `sent` aumenta y el teléfono muestra «Hedging activado en QQQ». Un fallo de FCM incrementa `failed`, registra `push_failed` con un código estable y **no** detiene el stop-loss.
 
 ## 6. Recuperación
