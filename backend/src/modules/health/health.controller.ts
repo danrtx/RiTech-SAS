@@ -38,6 +38,28 @@ export class HealthController {
     return body;
   }
 
+  @Get('live')
+  liveness() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
+
+  @Get('ready')
+  async readiness() {
+    const [postgres, redis] = await Promise.all([this.checkPostgres(), this.checkRedis()]);
+    const ok = postgres.status === 'up' && redis.status === 'up';
+
+    const body = {
+      status: ok ? 'ready' : 'not_ready',
+      timestamp: new Date().toISOString(),
+      services: { postgres, redis },
+    };
+
+    if (!ok) {
+      throw new ServiceUnavailableException(body);
+    }
+    return body;
+  }
+
   private async checkPostgres(): Promise<ServiceStatus> {
     const start = Date.now();
     try {
