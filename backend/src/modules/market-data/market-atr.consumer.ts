@@ -44,6 +44,7 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
     context?: TickDeliveryContext,
   ): Promise<void> {
     if (context?.signal.aborted) return;
+    // NFR-001: inicio del tramo consumerProcessing (fin de la espera en la cola de ingesta).
     const consumedAtMonotonicMs = performance.now();
     if (
       tick.provider !== this.config.provider ||
@@ -100,6 +101,7 @@ export class MarketAtrConsumer implements TickConsumer, OnModuleInit {
     if (result.accepted) {
       await this.analysis.consume(tick, context);
       if (current())
+        // La traza de latencia solo acompaña a los ticks en vivo (los que traen receivedAtMonotonicMs).
         this.stopLoss?.enqueue(
           tick,
           context?.receivedAtMonotonicMs === undefined

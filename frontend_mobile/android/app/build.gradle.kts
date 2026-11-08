@@ -44,5 +44,6 @@ flutter {
 }
 
 dependencies {
+    // Requerido por isCoreLibraryDesugaringEnabled (ver compileOptions).
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

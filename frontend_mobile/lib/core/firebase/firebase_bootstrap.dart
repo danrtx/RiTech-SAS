@@ -1,3 +1,6 @@
+/// Inicialización de Firebase al arrancar la app y manejador de mensajes en background.
+library;
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -23,6 +26,8 @@ FirebaseOptions? firebaseOptionsFromEnvironment() {
 /// Con la app en background o terminada, el sistema muestra la notificación que
 /// envía el backend; aquí solo se valida el payload. El toque se procesa al abrir
 /// la app (onMessageOpenedApp / getInitialMessage).
+// vm:entry-point evita que el compilador elimine la función: Android la invoca en un
+// isolate separado aunque ningún código Dart la llame directamente.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (Firebase.apps.isEmpty) {
@@ -32,6 +37,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (alert == null) debugPrint('push_background_invalid_payload');
 }
 
+/// Punto único de arranque de Firebase; lo llama main() antes de runApp.
 class FirebaseBootstrap {
   /// Devuelve `false` si Firebase no está configurado: la app sigue sin push.
   static Future<bool> initialize() async {
@@ -40,6 +46,7 @@ class FirebaseBootstrap {
     if (options == null && kIsWeb) return false;
     try {
       await Firebase.initializeApp(options: options);
+      // Debe registrarse antes de runApp para recibir mensajes con la app cerrada.
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       return true;
     } catch (error) {

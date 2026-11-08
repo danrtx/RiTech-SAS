@@ -26,6 +26,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/orders/:correlationId',
         name: 'order-detail',
+        // Un id con formato inválido (enlace manipulado) vuelve al tablero en vez de abrir la pantalla.
         redirect: (context, state) => HedgingAlert.isValidCorrelationId(
                 state.pathParameters['correlationId'] ?? '')
             ? null

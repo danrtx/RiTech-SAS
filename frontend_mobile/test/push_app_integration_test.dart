@@ -18,6 +18,10 @@ import 'push_notifications_test.dart'
     show FakeClient, FakeNotifier, FakeRegistration, payload, settle;
 import 'socket_transport_test.dart' show FakeTransport;
 
+// Pruebas de integración de la app completa (RiTechApp + router real) con alertas push,
+// y de la llamada HTTP de registro del dispositivo.
+
+/// Adaptador HTTP de Dio que no sale a la red: guarda la petición y responde 201.
 class RecordingAdapter implements HttpClientAdapter {
   RequestOptions? request;
   Object? body;
