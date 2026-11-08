@@ -2,6 +2,22 @@ import { backtest } from './backtest';
 const config = { initialCapital: 1000, costBps: 0, slippageBps: 0, maxGapMs: 2000 };
 const samples = (prices: number[]) => prices.map((price, i) => ({ symbol: 'NDX', price, eventTimeMs: i * 1000 }));
 describe('backtest accounting', () => {
+  it('compares a stopped-out strategy with the recovery of buy and hold', () => {
+    const result = backtest(samples([100, 99, 90, 110]), config);
+    expect(result.baseline.finalEquity).toBeCloseTo(1100);
+    expect(result.baseline.maximumDrawdownPercent).toBeCloseTo(-10);
+    expect(result.baseline.excessReturnPercentagePoints).toBeCloseTo(-20);
+    expect(result.openQuantity).toBe(0);
+  });
+  it('uses identical entry costs for the baseline and reports costs separately', () => {
+    const result = backtest(samples([100, 101, 102]), { ...config, costBps: 10, slippageBps: 10 });
+    const units = 1000 / (100 * 1.001 * 1.001);
+    expect(result.finalEquity).toBeCloseTo(units * 102);
+    expect(result.baseline.excessReturnPercentagePoints).toBeCloseTo(0);
+    expect(result.feesPaid).toBeCloseTo(units * 100 * 1.001 * 0.001);
+    expect(result.slippageCost).toBeCloseTo(units * 100 * 0.001);
+    expect(result.openQuantity).toBeCloseTo(units);
+  });
   it('fills after the signal, including losses between trigger and fill', () => {
     const result = backtest(samples([100, 99, 90, 110]), config);
     expect(result.executions[0]).toEqual({ eventTimeMs: 2000, price: 90, quantity: 10 });

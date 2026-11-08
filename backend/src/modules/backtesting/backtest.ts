@@ -22,6 +22,12 @@ export function backtest(samples: StopLossSample[], config: BacktestConfig) {
   const fee = config.costBps / 10000;
   const slip = config.slippageBps / 10000;
   let quantity = config.initialCapital / (samples[0].price * (1 + slip) * (1 + fee));
+  const initialQuantity = quantity;
+  let baselinePeak = config.initialCapital;
+  let baselineDrawdown = 0;
+  let baselineValue = config.initialCapital;
+  let feesPaid = quantity * samples[0].price * (1 + slip) * fee;
+  let slippageCost = quantity * samples[0].price * slip;
   let cash = 0;
   let peak = config.initialCapital;
   let maximumDrawdownPercent = 0;
@@ -40,10 +46,15 @@ export function backtest(samples: StopLossSample[], config: BacktestConfig) {
       const price = sample.price * (1 - slip);
       executions.push({ eventTimeMs: sample.eventTimeMs, price, quantity });
       cash = quantity * price * (1 - fee);
+      feesPaid += quantity * price * fee;
+      slippageCost += quantity * sample.price * slip;
       quantity = 0;
       pending = false;
     }
     const value = cash + quantity * sample.price;
+    baselineValue = initialQuantity * sample.price;
+    baselinePeak = Math.max(baselinePeak, baselineValue);
+    baselineDrawdown = Math.min(baselineDrawdown, (baselineValue / baselinePeak - 1) * 100);
     peak = Math.max(peak, value);
     const drawdownPercent = (value / peak - 1) * 100;
     maximumDrawdownPercent = Math.min(maximumDrawdownPercent, drawdownPercent);
@@ -54,5 +65,15 @@ export function backtest(samples: StopLossSample[], config: BacktestConfig) {
     from: samples[0].eventTimeMs, to: samples[samples.length - 1].eventTimeMs,
     maximumDrawdownPercent, returnPercent: (equity[equity.length - 1].value / config.initialCapital - 1) * 100,
     gaps, pendingAtEnd: pending, executions, equity,
+    finalEquity: equity[equity.length - 1].value,
+    feesPaid, slippageCost, openQuantity: quantity,
+    baseline: {
+      model: 'BUY_AND_HOLD_MARK_TO_MARKET',
+      finalEquity: baselineValue,
+      returnPercent: (baselineValue / config.initialCapital - 1) * 100,
+      maximumDrawdownPercent: baselineDrawdown,
+      excessReturnPercentagePoints: (equity[equity.length - 1].value - baselineValue) / config.initialCapital * 100,
+      valuation: 'Same entry costs; open positions marked to market, no forced final sale or assumed exit costs.',
+    },
     riskLimitWithinTwoPercent: maximumDrawdownPercent >= -2 };
 }
