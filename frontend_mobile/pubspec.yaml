@@ -17,6 +17,10 @@ dependencies:
   equatable: ^2.0.5
   cupertino_icons: ^1.0.6
   socket_io_client: ^3.0.2
+  # Notificaciones push de hedging: Firebase Cloud Messaging y notificaciones locales.
+  firebase_core: ^5.1.0
+  firebase_messaging: ^17.0.1
+  flutter_local_notifications: ^20.1.0
 
 dev_dependencies:
   flutter_test:

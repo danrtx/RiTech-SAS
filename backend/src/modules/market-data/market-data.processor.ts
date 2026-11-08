@@ -172,7 +172,11 @@ export class MarketDataProcessor {
         let settled = false;
         const work = Promise.resolve().then(() => {
           if (!abort.signal.aborted)
-            return this.consumer.consume(entry.tick, { signal: abort.signal });
+            return this.consumer.consume(entry.tick, {
+              signal: abort.signal,
+              // NFR-001: la marca de recepción viaja hasta el stop-loss para medir la latencia.
+              receivedAtMonotonicMs: entry.receivedAtMonotonicMs,
+            });
         });
         void work.then(
           () => {
