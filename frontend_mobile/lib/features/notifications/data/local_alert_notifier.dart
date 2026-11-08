@@ -1,3 +1,6 @@
+/// Notificaciones locales para alertas recibidas con la app abierta.
+library;
+
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -6,10 +9,14 @@ import '../domain/hedging_alert.dart';
 /// Muestra en la bandeja las alertas recibidas con la app en primer plano
 /// (en foreground, FCM no despliega la notificación del sistema por sí solo).
 abstract interface class LocalAlertNotifier {
+  /// Prepara el plugin y registra qué hacer cuando el usuario toca la notificación.
   Future<void> initialize(void Function(Map<String, Object?> data) onTap);
+
+  /// Publica la alerta en la bandeja del sistema.
   Future<void> show(HedgingAlert alert);
 }
 
+/// Implementación con flutter_local_notifications (Android e iOS; en web no hace nada).
 class FlutterLocalAlertNotifier implements LocalAlertNotifier {
   FlutterLocalAlertNotifier([FlutterLocalNotificationsPlugin? plugin])
       : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
@@ -36,6 +43,7 @@ class FlutterLocalAlertNotifier implements LocalAlertNotifier {
           requestSoundPermission: false,
         ),
       ),
+      // El payload es el JSON de la alerta (ver show); al tocarla se reconstruye y se navega.
       onDidReceiveNotificationResponse: (response) {
         final payload = response.payload;
         if (payload == null) return;
@@ -47,6 +55,7 @@ class FlutterLocalAlertNotifier implements LocalAlertNotifier {
         }
       },
     );
+    // Android 8+ exige que el canal exista antes de publicar notificaciones en él.
     await _plugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()

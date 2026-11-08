@@ -43,5 +43,6 @@ export const envConfig = (): EnvironmentVariables => ({
   REDIS_PASS: process.env.REDIS_PASSWORD || 'ritech_dev',
   WS_PORT: parseInt(process.env.WS_PORT || '4000', 10),
   marketData: parseMarketDataConfig(process.env),
+  // Variables FCM_*: se validan al arrancar (ver notifications.config.ts).
   notifications: parseNotificationsConfig(process.env),
 });

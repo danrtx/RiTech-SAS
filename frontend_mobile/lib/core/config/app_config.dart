@@ -17,6 +17,7 @@ class AppConfig {
   );
 
   // Firebase / FCM por ambiente. Vacío = push deshabilitado en ese build.
+  // Se pasan con --dart-define (plantilla en dart_defines/example.json); no se versionan.
   static const String firebaseApiKey = String.fromEnvironment('FIREBASE_API_KEY');
   static const String firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID');
   static const String firebaseMessagingSenderId =
