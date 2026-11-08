@@ -9,6 +9,7 @@ import { performance } from "node:perf_hooks";
 import { TelemetryGateway } from "../telemetry/telemetry.gateway";
 import { PushNotificationService } from "../notifications/push-notification.service";
 import { DynamicStopLoss, StopLossSample } from "./dynamic-stop-loss";
+import { PaperExecutionService } from "./paper-execution.service";
 import { PipelineLatencyService, PipelineTrace } from "./pipeline-latency";
 
 /** Muestra en cola junto con los datos necesarios para medir la latencia NFR-001. */
@@ -33,6 +34,7 @@ export class StopLossService implements OnModuleInit, OnModuleDestroy {
     private readonly gateway: TelemetryGateway,
     @Optional() private readonly latency?: PipelineLatencyService,
     @Optional() private readonly push?: PushNotificationService,
+    @Optional() private readonly execution?: PaperExecutionService,
   ) {}
 
   onModuleInit(): void {
@@ -85,6 +87,7 @@ export class StopLossService implements OnModuleInit, OnModuleDestroy {
           ...trigger,
           executionStatus: "REQUESTED",
         });
+        this.execution?.execute(trigger);
       } catch {
         this.logger.error("stop_loss_notification_failed");
       }
