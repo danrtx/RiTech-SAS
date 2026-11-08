@@ -3,6 +3,8 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MarketChartArchive1791345600000 } from "./migrations/1791345600000-MarketChartArchive";
 
+import { BrokerOrders1794153600000 } from "./migrations/1794153600000-BrokerOrders";
+
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
@@ -17,7 +19,10 @@ import { MarketChartArchive1791345600000 } from "./migrations/1791345600000-Mark
         database: configService.get<string>("DB_NAME"),
         autoLoadEntities: true,
         synchronize: false,
-        migrations: [MarketChartArchive1791345600000],
+        migrations: [
+          MarketChartArchive1791345600000,
+          BrokerOrders1794153600000,
+        ],
         migrationsRun: true,
         logging: configService.get<string>("NODE_ENV") === "development",
       }),

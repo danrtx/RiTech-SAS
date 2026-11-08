@@ -10,6 +10,8 @@ import { HealthModule } from './modules/health/health.module';
 import { AtrModule } from './modules/atr/atr.module';
 import { MarketChartModule } from './modules/market-chart/market-chart.module';
 
+import { BrokerModule } from './modules/broker/broker.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -19,6 +21,7 @@ import { MarketChartModule } from './modules/market-chart/market-chart.module';
       load: [envConfig],
     }),
     DatabaseModule,
+    BrokerModule,
     RedisCacheModule,
     TelemetryModule,
     MarketDataModule,
