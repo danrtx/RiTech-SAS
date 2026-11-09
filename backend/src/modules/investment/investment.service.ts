@@ -4,6 +4,11 @@ import { InvestmentConfig } from "./investment.config";
 import { InvestmentMarket } from "./investment.market";
 import { GeminiClient, GeminiFailure } from "./gemini.client";
 import {
+  closingQuality,
+  CLOSING_HISTORY_MAX_AGE_MS,
+  CLOSING_QUESTIONS_MS,
+} from "./closing-analysis";
+import {
   Analysis,
   EvaluationInput,
   ModelAnalysis,
@@ -11,7 +16,13 @@ import {
   PROMPT_VERSION,
   instrument,
 } from "./investment.types";
-import { explainReasons, quality, risk } from "./investment.risk";
+import {
+  CLOSED_BAR_MAX_AGE_MS,
+  closedBarQuality,
+  explainReasons,
+  quality,
+  risk,
+} from "./investment.risk";
 
 @Injectable()
 export class InvestmentService {
@@ -34,7 +45,11 @@ export class InvestmentService {
   async create(
     scope: string,
     key: string,
-    request: { symbol: "QQQ"; quantity: number },
+    request: {
+      symbol: "QQQ";
+      quantity: number;
+      mode?: "INTRADAY" | "AFTER_CLOSE";
+    },
     signal?: AbortSignal,
   ) {
     const claim = await this.store.claim(scope, key, "recommendation", request);
@@ -71,6 +86,88 @@ export class InvestmentService {
       humanConfirmationRequired: true,
     };
     try {
+      if (request.mode === "AFTER_CLOSE") {
+        result = {
+          ...result,
+          analysisMode: "AFTER_CLOSE",
+          horizon: "REVISION_SESION_FINALIZADA",
+          status: "DATOS_INSUFICIENTES",
+          indicators: null,
+          limitations: [
+            instrument.limitations,
+            "Revisión histórica de una sesión finalizada, no cotización actual ni recomendación operativa.",
+            "La variación compara las dos últimas velas de un minuto, no el rendimiento de toda la sesión.",
+            "Solo se admite cierre regular completo de 16:00 de Nueva York; cierres anticipados requieren calendario bursátil.",
+          ],
+        };
+        const closing = await this.market.closingSnapshot();
+        if (!closing) {
+          result.justification =
+            "No hay un cierre regular completo disponible. Intenta después del cierre o revisa la fuente histórica.";
+          return this.store.finish(scope, claim.id, result, input);
+        }
+        input = { ...input, market: closing };
+        const reasons = closingQuality(input, Date.now());
+        result = {
+          ...result,
+          indicators: closing,
+          sessionDateNY: closing.sessionDateNY,
+          sources: [
+            {
+              provider: closing.provider,
+              quotedAt: closing.quotedAt,
+              atrAt: closing.atrAt,
+              quoteSource: closing.quoteSource,
+            },
+          ],
+          riskValidation: {
+            passed: false,
+            reasons: ["SOLO_REVISION_AL_CIERRE", ...reasons],
+          },
+        };
+        if (reasons.length) {
+          result.justification =
+            "No se pudo validar el cierre: faltan velas consecutivas, ATR consistente o el histórico supera siete días.";
+          return this.store.finish(scope, claim.id, result, input);
+        }
+        await this.quota(scope);
+        const response = await this.gemini.generate(
+          "analysis",
+          {
+            instrument,
+            ...input,
+            analysisMode: "AFTER_CLOSE",
+            sessionDateNY: closing.sessionDateNY,
+          },
+          signal,
+        );
+        const analysis = ModelAnalysis.parse(response.data);
+        const invalid = closingQuality(input, Date.now()).length > 0;
+        const until = Math.min(
+          Date.now() + CLOSING_QUESTIONS_MS,
+          (closing.quotedAt || 0) + CLOSING_HISTORY_MAX_AGE_MS,
+        );
+        result = {
+          ...result,
+          ...analysis,
+          status: invalid ? "DATOS_INSUFICIENTES" : "ANALISIS_AL_CIERRE",
+          decision: "ABSTENERSE",
+          modelDecision: invalid ? null : analysis.decision,
+          operable: false,
+          modelVersion: response.modelVersion,
+          generatedAt: Date.now(),
+          validUntil: invalid ? Date.now() : until,
+          questionsUntil: invalid ? Date.now() : until,
+          justification: invalid
+            ? "El histórico dejó de cumplir el límite temporal durante la generación."
+            : analysis.justification,
+          limitations: [
+            ...(result.limitations as string[]),
+            ...analysis.limitations,
+          ],
+        };
+        return this.store.finish(scope, claim.id, result, input);
+      }
       input = { ...input, ...(await this.store.context()) };
       const reasons = quality(input, this.config, Date.now()).filter(
         (reason) => reason !== "CONTEXTO_FINANCIERO_AUSENTE",
@@ -93,6 +190,87 @@ export class InvestmentService {
         ],
         riskValidation: { passed: false, reasons },
       };
+      if (
+        reasons.length &&
+        reasons.every((reason) =>
+          [
+            "COTIZACION_NO_VIGENTE",
+            "HISTORIAL_INSUFICIENTE",
+            "PRECIO_INVALIDO",
+          ].includes(reason),
+        )
+      ) {
+        const bars = this.market.closedBarSnapshot?.();
+        if (
+          bars &&
+          !closedBarQuality({ ...input, market: bars }, this.config, Date.now())
+            .length
+        ) {
+          input = { ...input, market: bars };
+          await this.quota(scope);
+          const response = await this.gemini.generate(
+            "analysis",
+            {
+              instrument,
+              ...input,
+              analysisMode: "CLOSED_BARS_INFORMATIONAL_ONLY",
+              instruction:
+                "Analiza las velas cerradas reales de un minuto. No son cotizaciones instantáneas. Explica escenarios y limitaciones; no hay autorización operativa.",
+            },
+            signal,
+          );
+          const analysis = ModelAnalysis.parse(response.data);
+          const currentBars = this.market.closedBarSnapshot();
+          const expired =
+            closedBarQuality(input, this.config, Date.now()).length > 0 ||
+            !currentBars ||
+            closedBarQuality(
+              { ...input, market: currentBars },
+              this.config,
+              Date.now(),
+            ).length > 0;
+          const expiry = Math.min(
+            Date.now() + this.config.validity,
+            (bars.quotedAt || 0) + CLOSED_BAR_MAX_AGE_MS,
+            (bars.atrAt || 0) + this.config.atrAge,
+          );
+          result = {
+            ...result,
+            ...analysis,
+            status: expired ? "DATOS_INSUFICIENTES" : "ANALISIS_INFORMATIVO",
+            analysisMode: "CLOSED_BARS_INFORMATIONAL_ONLY",
+            modelDecision: expired ? null : analysis.decision,
+            decision: "ABSTENERSE",
+            operable: false,
+            modelVersion: response.modelVersion,
+            indicators: bars,
+            sources: [
+              {
+                provider: bars.provider,
+                quotedAt: bars.quotedAt,
+                quoteSource: bars.quoteSource,
+                atrAt: bars.atrAt,
+                atrSource: bars.atrSource,
+              },
+            ],
+            generatedAt: Date.now(),
+            validUntil: expired ? Date.now() : expiry,
+            justification: expired
+              ? "Las velas vencieron durante el análisis. Solicita una nueva evaluación."
+              : analysis.justification,
+            riskValidation: {
+              passed: false,
+              reasons: ["SOLO_ANALISIS_VELAS_CERRADAS", ...reasons],
+            },
+            limitations: [
+              ...(result.limitations as string[]),
+              ...analysis.limitations,
+              "Análisis informativo de velas cerradas de un minuto; no habilita decisiones operativas ni sustituye el control de cotización de 2 segundos.",
+            ],
+          };
+          return this.store.finish(scope, claim.id, result, input);
+        }
+      }
       if (reasons.length)
         result = {
           ...result,
@@ -218,7 +396,9 @@ export class InvestmentService {
     try {
       if (
         row.result.validUntil <= Date.now() ||
-        row.result.status !== "READY"
+        !["READY", "ANALISIS_INFORMATIVO", "ANALISIS_AL_CIERRE"].includes(
+          row.result.status,
+        )
       ) {
         result = {
           ...result,

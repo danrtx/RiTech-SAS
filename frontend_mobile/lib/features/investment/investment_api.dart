@@ -17,7 +17,7 @@ class InvestmentApi {
             Dio(BaseOptions(
               baseUrl: AppConfig.apiBaseUrl,
               connectTimeout: const Duration(seconds: 10),
-              receiveTimeout: const Duration(seconds: 40),
+              receiveTimeout: const Duration(seconds: 60),
             ));
   final Dio _dio;
   CancelToken _cancel = CancelToken();
@@ -49,9 +49,11 @@ class InvestmentApi {
         : Map<String, dynamic>.from(response.data as Map);
   }
 
-  Future<Map<String, dynamic>> recommend(int quantity, String key) =>
+  Future<Map<String, dynamic>> recommend(int quantity, String key,
+          {String mode = 'INTRADAY'}) =>
       _call('recommendations',
-          body: {'symbol': 'QQQ', 'quantity': quantity}, key: key);
+          body: {'symbol': 'QQQ', 'quantity': quantity, 'mode': mode},
+          key: key);
   Future<Map<String, dynamic>> detail(String id) =>
       _call('recommendations/$id', method: 'GET');
   Future<Map<String, dynamic>> ask(String id, String question, String key) =>

@@ -4,6 +4,36 @@ export interface FreshnessPolicy {
   atrAge: number;
   contextAge: number;
 }
+// A separate, non-operational contract for two consecutive CLOSED one-minute bars.
+// The live quote/stop-loss policy is intentionally unchanged.
+export const CLOSED_BAR_MAX_AGE_MS = 180000;
+export function closedBarQuality(
+  input: EvaluationInput,
+  policy: FreshnessPolicy,
+  now: number,
+): string[] {
+  const m = input.market;
+  const reasons = quality(input, policy, now).filter(
+    (reason) =>
+      !["COTIZACION_NO_VIGENTE", "CONTEXTO_FINANCIERO_AUSENTE"].includes(
+        reason,
+      ),
+  );
+  if (
+    m.quoteSource !== "closed_1min_bars" ||
+    m.live ||
+    m.provider !== "twelvedata" ||
+    m.quotedAt === null ||
+    !Number.isSafeInteger(m.quotedAt) ||
+    m.quotedAt % 60000 !== 0 ||
+    now - m.quotedAt < 60000 ||
+    now - m.quotedAt >= CLOSED_BAR_MAX_AGE_MS ||
+    m.referenceAt !== m.quotedAt - 60000
+  ) {
+    reasons.push("VELAS_NO_VIGENTES");
+  }
+  return [...new Set(reasons)];
+}
 export function quality(
   input: EvaluationInput,
   policy: FreshnessPolicy,
