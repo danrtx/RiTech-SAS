@@ -3,10 +3,12 @@ import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { serverTls } from './config/server-tls';
+import { assertRuntimeTls } from './config/runtime-tls';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   await ConfigModule.envVariablesLoaded;
+  assertRuntimeTls(process.env.NODE_ENV);
   const httpsOptions = serverTls((key) => process.env[key]);
   const app = await NestFactory.create(AppModule, { httpsOptions });
   app.enableShutdownHooks(['SIGINT', 'SIGTERM']);

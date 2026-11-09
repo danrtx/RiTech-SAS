@@ -21,6 +21,7 @@ WORKDIR /app
 COPY --from=build --chown=ritech:ritech /app/dist ./dist
 COPY --from=build --chown=ritech:ritech /app/node_modules ./node_modules
 COPY --from=build --chown=ritech:ritech /app/package.json ./
+COPY --chown=ritech:ritech scripts/healthcheck.cjs ./scripts/healthcheck.cjs
 
 USER ritech
 
@@ -30,7 +31,7 @@ ENV PORT=3000
 EXPOSE 3000
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
+  CMD node --tls-min-v1.3 scripts/healthcheck.cjs
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "dist/main"]
+CMD ["node", "--tls-min-v1.3", "dist/main"]

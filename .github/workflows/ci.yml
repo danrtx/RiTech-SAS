@@ -218,9 +218,16 @@ jobs:
           path: reportes/latencia
         continue-on-error: true
 
+      # Consume la auditoría de este run; nunca el JSON histórico del repositorio.
+      - uses: actions/download-artifact@v4
+        with:
+          name: streaming-metrics
+          path: ${{ runner.temp }}/security-evidence
+        continue-on-error: true
+
       - name: Borrador del acta DoD
         run: |
-          node backend/scripts/dod-report.cjs --output-dir=${{ runner.temp }}/dod
+          node backend/scripts/dod-report.cjs --security=${{ runner.temp }}/security-evidence/security-audit.json --output-dir=${{ runner.temp }}/dod
           cat ${{ runner.temp }}/dod/*.md >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4

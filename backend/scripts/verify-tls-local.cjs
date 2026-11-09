@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const tls = require('node:tls');
 const assert = require('node:assert/strict');
-const { execFileSync } = require('node:child_process');
+const { execFileSync, execFile } = require('node:child_process');
 const { datastoreTls } = require('../src/config/datastore-tls');
 const { serverTls } = require('../src/config/server-tls');
 const { Test } = require('@nestjs/testing');
@@ -54,6 +54,38 @@ async function handshake(policy, version, serverOptions) {
   execFileSync(openssl, ['req', '-x509', '-newkey', 'rsa:2048', '-nodes',
     '-keyout', key, '-out', ca, '-days', '1', '-subj', '/CN=localhost',
     '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], { stdio: 'ignore', timeout: 30000 });
+  // Exercise native fetch in a fresh production-style process, not a mocked client.
+  for (const version of ['TLSv1.3', 'TLSv1.2']) {
+    const server = require('node:https').createServer({ key: fs.readFileSync(key),
+      cert: fs.readFileSync(ca), minVersion: version, maxVersion: version },
+    (_, response) => response.end('ok'));
+    server.on('tlsClientError', () => {});
+    try {
+      await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+      const url = `https://127.0.0.1:${server.address().port}`;
+      const script = `fetch(${JSON.stringify(url)}, { signal: AbortSignal.timeout(5000) }).then(r => r.text()).then(() => process.stdout.write('accepted')).catch(() => process.stdout.write('rejected'))`;
+      const output = await new Promise((resolve, reject) => execFile(process.execPath,
+        ['--tls-min-v1.3', '-e', script],
+        { env: { ...process.env, NODE_EXTRA_CA_CERTS: ca }, timeout: 10000 },
+        (error, stdout) => error ? reject(error) : resolve(stdout)));
+      assert.equal(output, version === 'TLSv1.3' ? 'accepted' : 'rejected');
+      results.push({ prefix: 'HTTP-CLIENT', scenario: version, passed: true });
+      if (version === 'TLSv1.3') {
+        for (const host of ['localhost', 'wrong.invalid']) {
+          const exitCode = await new Promise(resolve => execFile(process.execPath,
+            ['--tls-min-v1.3', path.join(__dirname, 'healthcheck.cjs')],
+            { env: { ...process.env, PORT: String(server.address().port),
+              SERVER_TLS_HEALTH_CA_FILE: ca, SERVER_TLS_HEALTH_HOST: host }, timeout: 10000 },
+            error => resolve(error ? error.code : 0)));
+          assert.equal(exitCode, host === 'localhost' ? 0 : 1);
+          results.push({ prefix: 'HEALTHCHECK', scenario: host, passed: true });
+        }
+      }
+    } finally {
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+    }
+  }
   for (const prefix of ['DB', 'REDIS']) {
     for (const scenario of ['trusted', 'old-protocol', 'untrusted', 'wrong-host']) {
       const env = { NODE_ENV: 'production', [`${prefix}_TLS_ENABLED`]: 'true',
@@ -147,7 +179,7 @@ async function handshake(policy, version, serverOptions) {
   fs.rmSync(directory, { recursive: true, force: true });
   const report = { generatedAt: new Date().toISOString(),
     scope: 'Local TLS policies, Nest HTTPS listener and actual telemetry WSS gateway; not PostgreSQL/Redis protocol integration or production certification',
-    passed: results.length === 15 && results.every(item => item.passed), results };
+    passed: results.length === 19 && results.every(item => item.passed), results };
   const output = process.argv.find(arg => arg.startsWith('--output='));
   if (output) {
     const destination = path.resolve(output.slice(9));
