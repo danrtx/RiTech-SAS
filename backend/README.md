@@ -279,3 +279,7 @@ Los reportes se escriben por defecto en `../reportes/atr_engine/` respecto a la 
 El escenario de carga genera 360 ticks, intervalo solicitado de 4 ms, tres cortes y replay con solapamiento. Registra tasa realmente lograda, p50/p95/máximo de recepción local→persistencia y recuperación hasta replay completo. Verifica <200 ms, <2 s, cero pérdida y unicidad de la ventana. Las pausas reales del sistema operativo afectan la tasa lograda; el reporte no presenta la tasa solicitada como throughput medido. Esta evidencia corresponde al simulador, no certifica el proveedor real.
 
 La referencia pandas de 60 velas y 47 ATR se comparte desde `packages/atr_engine/test/fixtures/`; tolerancia absoluta <=1e-6. No se requiere Python para ejecutar los tests.
+
+## Agente general Gemini — Sprint 4
+
+Consulta la [arquitectura, API, configuración y pruebas](../docs/AGENTE_GEMINI_SPRINT4.md). Reutiliza el proveedor de mercado del `.env`; no añade usuarios ni roles y no ejecuta órdenes. La clave Gemini se configura únicamente en backend.
