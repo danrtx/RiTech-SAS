@@ -6,6 +6,10 @@ import {
 import { StopLossService } from './stop-loss.service';
 import { TelemetryGateway } from '../telemetry/telemetry.gateway';
 
+/**
+ * Pruebas unitarias de la medición de latencia: cálculo de percentiles, separación por
+ * tramos, detección del presupuesto de 200 ms y registro desde StopLossService.
+ */
 describe('PipelineLatencyService (NFR-001)', () => {
   it('calcula percentiles por rango más cercano', () => {
     const sorted = Array.from({ length: 100 }, (_, i) => i + 1);

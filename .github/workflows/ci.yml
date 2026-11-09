@@ -50,9 +50,11 @@ jobs:
         run: npm run lint
 
       - name: Pruebas unitarias
+        # --coverage y --json generan la evidencia que consume el job definition-of-done.
         run: npm test -- --ci --runInBand --coverage --json --outputFile=coverage/jest-results.json
         env:
           RUN_CHART_DB_TESTS: '1'
+          RUN_INVESTMENT_DB_TESTS: '1'
           DB_HOST: 127.0.0.1
           DB_PORT: '5432'
           DB_USER: ritech
@@ -73,6 +75,7 @@ jobs:
           REDIS_TEST_PASSWORD: ''
           QA_REPORT_PATH: ${{ runner.temp }}/streaming_metrics.json
 
+      # Falla el job si algún tick supera los 200 ms entre ingesta y hedging.
       - name: NFR-001 latencia ingesta -> hedging con Redis real
         run: npm run qa:latency -- --redis --duration=30000
         env:
@@ -138,6 +141,7 @@ jobs:
       - name: Analisis estatico
         run: flutter analyze --no-fatal-infos
 
+      # El reporte JSON permite al acta DoD contar pruebas aprobadas y fallidas.
       - name: Pruebas unitarias con cobertura
         run: flutter test --coverage --file-reporter=json:coverage/flutter-tests.json
 
@@ -178,6 +182,8 @@ jobs:
           flutter test
           dart format --output=none --set-exit-if-changed .
 
+  # Consolida cobertura, pruebas, latencia y auditoría en un borrador del acta DoD.
+  # Corre siempre (if: always) para mostrar el estado aunque otro job falle.
   definition-of-done:
     name: Definition of Done (cobertura, pruebas, latencia, Sonar)
     runs-on: ubuntu-latest

@@ -1,15 +1,23 @@
+/// Adaptador sobre Firebase Messaging. El resto de la app usa la interfaz
+/// [PushMessagingClient], así las pruebas pueden usar un cliente falso sin Firebase.
+library;
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../core/config/app_config.dart';
 
+/// Respuesta del usuario a la solicitud de permiso de notificaciones.
 enum PushPermission { granted, provisional, denied, notDetermined }
 
 /// Mensaje recibido, independiente del SDK para poder probar sin Firebase.
 class IncomingPush {
   const IncomingPush({required this.data, this.title, this.body});
+
+  /// Bloque `data` del mensaje (lo que valida HedgingAlert.tryParse).
   final Map<String, Object?> data;
   final String? title;
   final String? body;
 
+  /// Convierte el mensaje del SDK de Firebase al modelo propio.
   factory IncomingPush.fromRemote(RemoteMessage message) => IncomingPush(
         data: Map<String, Object?>.from(message.data),
         title: message.notification?.title,
@@ -17,17 +25,28 @@ class IncomingPush {
       );
 }
 
+/// Operaciones de mensajería push que necesita el controlador.
 abstract interface class PushMessagingClient {
+  /// Muestra el diálogo del sistema para permitir notificaciones (Android 13+ e iOS).
   Future<PushPermission> requestPermission();
+
+  /// Token del dispositivo que el backend suscribe al tópico de alertas.
   Future<String?> getToken();
+
+  /// Emite un token nuevo cuando FCM lo rota; hay que volver a registrarlo.
   Stream<String> get onTokenRefresh;
+
+  /// Mensajes recibidos con la app abierta.
   Stream<IncomingPush> get onForegroundMessage;
+
+  /// Notificaciones tocadas con la app en segundo plano.
   Stream<IncomingPush> get onMessageOpenedApp;
 
   /// Mensaje que abrió la app desde estado terminado, si lo hubo.
   Future<IncomingPush?> getInitialMessage();
 }
 
+/// Implementación real con el plugin firebase_messaging.
 class FirebasePushMessagingClient implements PushMessagingClient {
   FirebasePushMessagingClient([FirebaseMessaging? messaging])
       : _messaging = messaging ?? FirebaseMessaging.instance;

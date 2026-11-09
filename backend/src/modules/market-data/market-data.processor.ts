@@ -174,6 +174,7 @@ export class MarketDataProcessor {
           if (!abort.signal.aborted)
             return this.consumer.consume(entry.tick, {
               signal: abort.signal,
+              // NFR-001: la marca de recepción viaja hasta el stop-loss para medir la latencia.
               receivedAtMonotonicMs: entry.receivedAtMonotonicMs,
             });
         });

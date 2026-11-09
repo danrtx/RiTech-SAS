@@ -9,6 +9,13 @@ import { NotificationsController } from './notifications.controller';
 import { PushNotificationService } from './push-notification.service';
 import { DisabledPushSender, PUSH_SENDER, PushSender } from './push-sender';
 
+/**
+ * Pruebas del módulo de notificaciones: contrato del payload, validación de configuración,
+ * cola de envío (errores, timeout, desborde) y endpoints HTTP de registro de dispositivos.
+ * FCM se reemplaza por un emisor falso; no se contacta a Google.
+ */
+
+/** Activación de stop-loss de ejemplo; `overrides` cambia solo los campos indicados. */
 const trigger = (overrides: Partial<StopLossTrigger> = {}): StopLossTrigger => ({
   schemaVersion: 1,
   correlationId: 'QQQ:1791345600000',
@@ -23,6 +30,7 @@ const trigger = (overrides: Partial<StopLossTrigger> = {}): StopLossTrigger => (
   ...overrides,
 });
 
+/** Emisor FCM falso que acepta todo; `impl` reemplaza métodos para simular fallos. */
 function fakeSender(impl: Partial<PushSender> = {}): jest.Mocked<PushSender> {
   return {
     kind: 'fcm',
@@ -33,6 +41,7 @@ function fakeSender(impl: Partial<PushSender> = {}): jest.Mocked<PushSender> {
   } as jest.Mocked<PushSender>;
 }
 
+/** Configuración de prueba con timeout corto (100 ms) para que el caso de timeout sea rápido. */
 const config = (env: Record<string, string> = {}) =>
   parseNotificationsConfig({ FCM_SEND_TIMEOUT_MS: '100', ...env });
 

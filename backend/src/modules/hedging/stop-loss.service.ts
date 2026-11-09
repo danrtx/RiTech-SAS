@@ -9,11 +9,15 @@ import { performance } from "node:perf_hooks";
 import { TelemetryGateway } from "../telemetry/telemetry.gateway";
 import { PushNotificationService } from "../notifications/push-notification.service";
 import { DynamicStopLoss, StopLossSample } from "./dynamic-stop-loss";
+import { PaperExecutionService } from "./paper-execution.service";
 import { PipelineLatencyService, PipelineTrace } from "./pipeline-latency";
 
+/** Muestra en cola junto con los datos necesarios para medir la latencia NFR-001. */
 interface QueuedSample {
   sample: StopLossSample;
+  /** Solo los ticks en vivo traen traza; los de recuperación o pruebas directas no se miden. */
   trace?: PipelineTrace;
+  /** performance.now() al entrar a la cola (inicio del tramo hedgingQueue). */
   enqueuedAtMs: number;
 }
 
@@ -25,10 +29,12 @@ export class StopLossService implements OnModuleInit, OnModuleDestroy {
   private scheduled?: NodeJS.Immediate;
   private timer?: NodeJS.Timeout;
   private stopped = false;
+  // latency y push son opcionales: las pruebas pueden construir el servicio sin ellos.
   constructor(
     private readonly gateway: TelemetryGateway,
     @Optional() private readonly latency?: PipelineLatencyService,
     @Optional() private readonly push?: PushNotificationService,
+    @Optional() private readonly execution?: PaperExecutionService,
   ) {}
 
   onModuleInit(): void {
@@ -39,6 +45,7 @@ export class StopLossService implements OnModuleInit, OnModuleDestroy {
     this.timer.unref();
   }
 
+  /** Encola un tick para el motor. `trace` viene del consumidor de mercado en ticks en vivo. */
   enqueue(sample: StopLossSample, trace?: PipelineTrace): void {
     if (this.stopped) return;
     if (this.queue.length >= 4096) {
@@ -80,6 +87,7 @@ export class StopLossService implements OnModuleInit, OnModuleDestroy {
           ...trigger,
           executionStatus: "REQUESTED",
         });
+        this.execution?.execute(trigger);
       } catch {
         this.logger.error("stop_loss_notification_failed");
       }

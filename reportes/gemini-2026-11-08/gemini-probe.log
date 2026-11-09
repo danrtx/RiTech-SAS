@@ -1,0 +1,4 @@
+> ritech-backend@1.0.0 gemini:probe
+> ts-node scripts/probe-gemini.ts
+
+{"status":"NO_EJECUTADA","reason":"GEMINI_API_KEY ausente","calls":0}

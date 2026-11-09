@@ -17,6 +17,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:sprints23": "jest --runInBand --cacheDirectory=.cache/jest dynamic-stop-loss hedging-flow.e2e",
+    "backtest": "ts-node scripts/backtest.ts",
+    "backtest:validate": "ts-node scripts/backtest.ts --validate-only",
+    "qa:diego": "node scripts/verify-diego.cjs",
     "audit:security": "node scripts/audit-security.cjs",
     "test:cov": "jest --coverage",
     "test:integration": "node scripts/run-integration.cjs",
@@ -29,9 +32,15 @@
     "market-data:probe": "ts-node src/modules/market-data/testing/probe-market-data.ts",
     "chart:probe": "node scripts/probe-chart-live.cjs",
     "market-data:probe:real": "npm run build && node --env-file=../.env scripts/probe-twelve-live.cjs",
-    "market-data:mock:twelve": "ts-node src/modules/market-data/testing/run-twelve-data-mock.ts"
+    "market-data:mock:twelve": "ts-node src/modules/market-data/testing/run-twelve-data-mock.ts",
+    "broker:ioc": "ts-node scripts/submit-ioc.ts",
+    "gemini:probe": "ts-node scripts/probe-gemini.ts",
+    "investment:backtest": "ts-node scripts/evaluate-recommendations.ts",
+    "test:investment": "jest --runInBand modules/investment",
+    "investment:purge": "ts-node scripts/purge-investment.ts"
   },
   "dependencies": {
+    "@google/genai": "^2.32.0",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.1.1",
     "@nestjs/core": "^10.3.0",
@@ -48,7 +57,8 @@
     "rxjs": "^7.8.1",
     "socket.io": "^4.7.4",
     "typeorm": "^0.3.20",
-    "ws": "^8.22.0"
+    "ws": "^8.22.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.3.0",

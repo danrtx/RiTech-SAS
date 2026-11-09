@@ -8,10 +8,16 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/alerts/presentation/screens/alerts_screen.dart';
 import '../../features/monitoring/presentation/screens/monitoring_dashboard_screen.dart';
 
+import '../../features/investment/investment_screen.dart';
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/dashboard',
     routes: [
+      GoRoute(
+          path: '/investment',
+          name: 'investment',
+          builder: (context, state) => const InvestmentScreen()),
       GoRoute(
         path: '/dashboard',
         name: 'dashboard',
@@ -44,6 +50,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/orders/:correlationId',
         name: 'order-detail',
+        // Un id con formato inválido (enlace manipulado) vuelve al tablero en vez de abrir la pantalla.
         redirect: (context, state) => HedgingAlert.isValidCorrelationId(
                 state.pathParameters['correlationId'] ?? '')
             ? null

@@ -14,15 +14,20 @@
 const { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } = require("node:fs");
 const { join, relative, resolve } = require("node:path");
 
+/** Raíz del repositorio (este script vive en backend/scripts). */
 const ROOT = resolve(__dirname, "..", "..");
+// Umbrales de la DoD: cobertura de líneas > 80 % y latencia NFR-001 ≤ 200 ms.
 const COVERAGE_TARGET = 80;
 const LATENCY_BUDGET_MS = 200;
 
+/** Ruta absoluta del argumento `--nombre=ruta`, o `fallback` si no se pasó. */
 const arg = (name, fallback) => {
   const found = process.argv.find((value) => value.startsWith(`--${name}=`));
   return found ? resolve(found.slice(name.length + 3)) : fallback;
 };
+/** Contenido del archivo como texto, o null si no existe. */
 const read = (path) => (path && existsSync(path) ? readFileSync(path, "utf8") : null);
+/** Archivo JSON parseado, o null si no existe o está corrupto. */
 const json = (path) => {
   const text = read(path);
   try {
@@ -31,8 +36,10 @@ const json = (path) => {
     return null;
   }
 };
+/** Ruta relativa a la raíz con "/" (para que el acta se lea igual en Windows y Linux). */
 const rel = (path) => (path ? relative(ROOT, path).replace(/\\/g, "/") : "—");
 
+/** Último archivo de `dir` cuyo nombre cumple `pattern` (los nombres llevan la fecha, así que ordenar alcanza). */
 function latest(dir, pattern) {
   if (!existsSync(dir)) return null;
   const files = readdirSync(dir).filter((name) => pattern.test(name)).sort();
@@ -69,6 +76,7 @@ function flutterResults(text) {
   return { passed, failed };
 }
 
+// Evidencias que consume el acta; cada una se puede sobrescribir por argumento.
 const paths = {
   backendCoverage: arg("backend-coverage", join(ROOT, "backend/coverage/coverage-summary.json")),
   backendTests: arg("backend-tests", join(ROOT, "backend/coverage/jest-results.json")),
@@ -78,10 +86,12 @@ const paths = {
   security: arg("security", latest(join(ROOT, "reportes/sprints-2-3"), /^security-audit.*\.json$/)),
 };
 
+/** Criterios evaluados; cada uno termina en PASS, FAIL o MISSING (falta la evidencia). */
 const checks = [];
 const check = (id, criterion, status, evidence, detail) =>
   checks.push({ id, criterion, status, evidence: rel(evidence), detail });
 
+// Criterio 1: cobertura de líneas en backend y app móvil.
 const backendCov = json(paths.backendCoverage)?.total?.lines?.pct ?? null;
 const flutterCov = lcovLines(read(paths.flutterCoverage));
 for (const [id, label, value, path] of [
@@ -97,6 +107,7 @@ for (const [id, label, value, path] of [
   );
 }
 
+// Criterio 2: pruebas sin fallos (Jest en backend, flutter test en la app).
 const jest = json(paths.backendTests);
 check(
   "TEST-BACKEND",
@@ -119,6 +130,7 @@ check(
     : `${flutter.passed} aprobadas, ${flutter.failed} fallidas`,
 );
 
+// Criterio 3: latencia bajo carga (último reporte de npm run qa:latency).
 const latency = json(paths.latency);
 const total = latency?.result?.segments?.total;
 check(
@@ -135,6 +147,7 @@ check(
     : "Ejecutar npm run qa:latency -- --redis",
 );
 
+// Criterio 4: auditoría de cifrado TLS 1.3 / AES-256.
 const security = json(paths.security);
 check(
   "SEC-AUDIT",
@@ -146,6 +159,7 @@ check(
     : `Dictamen ${security.verdict}; ${security.findings.filter((f) => f.status !== "PASS").length} hallazgos abiertos`,
 );
 
+// Salida: el acta en JSON (para máquinas) y en Markdown (para firmar).
 const generatedAt = new Date().toISOString();
 const blocking = checks.filter((c) => c.status !== "PASS");
 const outDir = arg("output-dir", join(ROOT, "reportes/dod"));
@@ -184,4 +198,5 @@ Firma QA: ____________________ Fecha: __________
 `;
 writeFileSync(join(outDir, `acta-dod_${stamp}.md`), md);
 console.log(md);
+// Sin --strict siempre termina en 0: el acta es informativa y la decisión la toma QA.
 process.exit(process.argv.includes("--strict") && blocking.length ? 1 : 0);

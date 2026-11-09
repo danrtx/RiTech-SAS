@@ -14,6 +14,12 @@ import {
 import { IsIn, IsString, Matches, MaxLength } from 'class-validator';
 import { PushNotificationService } from './push-notification.service';
 
+/**
+ * Endpoints que usa la app móvil para registrarse en las alertas push,
+ * más un endpoint de estado para operación (/notifications/status).
+ */
+
+/** Cuerpo de POST /notifications/devices. */
 export class DeviceRegistrationDto {
   /** Token de registro FCM del dispositivo; nunca se registra en logs. */
   @IsString()
@@ -25,6 +31,7 @@ export class DeviceRegistrationDto {
   platform: 'android' | 'ios' | 'web';
 }
 
+/** Cuerpo de DELETE /notifications/devices (el token va en el cuerpo, no en la URL, para que no quede en logs de acceso). */
 export class DeviceUnregistrationDto {
   @IsString()
   @MaxLength(4096)
@@ -32,6 +39,7 @@ export class DeviceUnregistrationDto {
   token: string;
 }
 
+/** Códigos de FCM que indican un token malo: se responden como 400 y no como 503. */
 const INVALID_TOKEN_CODES = [
   'messaging/invalid-registration-token',
   'messaging/registration-token-not-registered',
@@ -45,11 +53,13 @@ export class NotificationsController {
 
   constructor(private readonly push: PushNotificationService) {}
 
+  /** Emisor activo, tópico y contadores de envíos (enviados, fallidos, descartados). */
   @Get('status')
   status() {
     return this.push.getStatus();
   }
 
+  /** Suscribe el dispositivo al tópico de alertas del ambiente. */
   @Post('devices')
   @HttpCode(201)
   async register(@Body() body: DeviceRegistrationDto) {
@@ -61,6 +71,7 @@ export class NotificationsController {
     }
   }
 
+  /** Retira el dispositivo del tópico (por ejemplo, al cerrar sesión). */
   @Delete('devices')
   @HttpCode(204)
   async unregister(@Body() body: DeviceUnregistrationDto) {
@@ -71,6 +82,10 @@ export class NotificationsController {
     }
   }
 
+  /**
+   * Traduce el error a una respuesta HTTP: 503 si push está deshabilitado o FCM no responde,
+   * 400 si el token es inválido. Solo se registra el código, nunca el token.
+   */
   private map(error: unknown, event: string) {
     const code =
       (error as { code?: string })?.code ?? (error as Error)?.message ?? 'unknown';

@@ -4,10 +4,14 @@ import 'package:go_router/go_router.dart';
 import '../application/push_notifications_controller.dart';
 
 /// Detalle de la orden solicitada por una activación de hedging.
+///
+/// Es el destino del deep link `/orders/:correlationId` al tocar una alerta push.
+/// Los datos salen de las alertas recibidas en la sesión (no se consulta al backend).
 class OrderDetailScreen extends ConsumerWidget {
   const OrderDetailScreen({super.key, required this.correlationId});
   final String correlationId;
 
+  /// Fecha y hora local en formato dd/mm/aaaa hh:mm:ss.
   String _time(DateTime value) {
     final local = value.toLocal();
     String two(int n) => n.toString().padLeft(2, '0');
@@ -17,6 +21,7 @@ class OrderDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // select: la pantalla solo se reconstruye si cambia esta alerta en particular.
     final alert = ref.watch(
         pushNotificationsProvider.select((state) => state.alerts[correlationId]));
     return Scaffold(
@@ -25,6 +30,7 @@ class OrderDetailScreen extends ConsumerWidget {
         leading: IconButton(
           tooltip: 'Volver al tablero',
           icon: const Icon(Icons.arrow_back),
+          // Abierta desde una notificación no hay pantalla anterior: se vuelve al tablero.
           onPressed: () => context.canPop() ? context.pop() : context.go('/dashboard'),
         ),
       ),
@@ -51,6 +57,7 @@ class OrderDetailScreen extends ConsumerWidget {
   }
 }
 
+/// Fila etiqueta / valor; el valor se puede seleccionar y copiar.
 class _Row extends StatelessWidget {
   const _Row(this.label, this.value);
   final String label;
@@ -67,6 +74,8 @@ class _Row extends StatelessWidget {
       );
 }
 
+/// Estado vacío: se abrió el enlace pero la alerta no llegó en esta sesión
+/// (por ejemplo, tras reiniciar la app o desde un enlace antiguo).
 class _Missing extends StatelessWidget {
   const _Missing({required this.correlationId});
   final String correlationId;

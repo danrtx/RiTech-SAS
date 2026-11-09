@@ -7,10 +7,14 @@ import {
 } from "../src/testing/latency-benchmark";
 
 /**
+ * Genera la evidencia de NFR-001: ejecuta el benchmark de latencia y guarda el reporte.
+ * Termina con código 1 si el veredicto es FAIL, para que CI marque el paso en rojo.
+ *
  * Uso: npm run qa:latency -- --rate=200 --duration=30000 --batch=5 [--redis]
  * Con --redis usa REDIS_HOST/REDIS_PORT/REDIS_PASSWORD (por defecto el Redis de docker compose).
  * Escribe JSON y Markdown en reportes/latencia/ (raíz del repositorio).
  */
+/** Lee un argumento numérico `--nombre=valor`; si no viene, usa `fallback`. */
 function option(name: string, fallback: number): number {
   const arg = process.argv.find((value) => value.startsWith(`--${name}=`));
   if (!arg) return fallback;
@@ -19,6 +23,7 @@ function option(name: string, fallback: number): number {
   return value;
 }
 
+/** Milisegundos con 3 decimales; "—" cuando no hay dato. */
 const fmt = (value: number | null) => (value === null ? "—" : value.toFixed(3));
 
 async function main() {
@@ -29,6 +34,7 @@ async function main() {
     cache: process.argv.includes("--redis") ? "redis" : "memory",
   };
   const report = await runLatencyBenchmark(options);
+  // Un archivo por ejecución, con la fecha en el nombre, para conservar el historial de evidencias.
   const dir = join(__dirname, "..", "..", "reportes", "latencia");
   mkdirSync(dir, { recursive: true });
   const stamp = report.generatedAt.replace(/[:.]/g, "-");

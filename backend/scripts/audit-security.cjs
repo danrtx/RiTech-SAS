@@ -15,11 +15,15 @@ add('TLS-INBOUND', 'HIGH', /httpsOptions/.test(main) ? 'REVIEW' : 'FAIL',
 const redis = read('backend/src/modules/redis-cache/redis-cache.service.ts');
 const db = read('backend/src/modules/database/database.module.ts');
 add('TLS-DATASTORES', 'HIGH', /tls:/.test(redis) && /ssl:/.test(db) ? 'REVIEW' : 'FAIL',
-  'Redis client and TypeORM configuration inspected; explicit TLS options are absent in the current configuration.',
+  /tls:/.test(redis) && /ssl:/.test(db)
+    ? 'TLS configuration paths found for Redis and PostgreSQL. Review their policy and verify deployed handshakes; static presence does not prove encryption.'
+    : 'Explicit TLS configuration paths missing for one or both datastore clients.',
   'Enable verified TLS 1.3 for PostgreSQL and Redis; supply trusted CA material and test insecure connection refusal.');
 const ws = read('backend/src/modules/market-data/market-data-ws.client.ts');
 add('TLS-PROVIDER-MINIMUM', 'MEDIUM', /minVersion: ['"]TLSv1.3['"]/.test(ws) ? 'REVIEW' : 'FAIL',
-  'Market WebSocket socket options inspected. wss alone does not enforce TLS 1.3.',
+  /minVersion: ['"]TLSv1.3['"]/.test(ws)
+    ? 'Explicit TLS 1.3 minimum found in WebSocket client. Verify negotiated protocol and rejection of older servers in deployment.'
+    : 'Market WebSocket socket options lack an explicit TLS 1.3 minimum.',
   'Set and test TLS 1.3 minimum on secure clients. Probe deployed destinations with certificate verification enabled.');
 add('AES-AT-REST', 'HIGH', 'NOT_VERIFIED',
   'docker-compose.yml declares PostgreSQL and Redis named volumes and Redis AOF; no disk, volume or KMS encryption evidence is supplied.',

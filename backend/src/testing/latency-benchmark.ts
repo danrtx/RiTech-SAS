@@ -1,3 +1,10 @@
+/**
+ * Benchmark de carga para NFR-001 (latencia ingesta → hedging ≤ 200 ms).
+ *
+ * Inyecta trades sintéticos a ritmo constante en el pipeline real del backend y devuelve
+ * un reporte con configuración, datos y resultados por tramo. Lo usan la prueba corta
+ * `latency-benchmark.spec.ts` (CI) y el script `npm run qa:latency` (reporte completo).
+ */
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { performance } from 'node:perf_hooks';
@@ -20,9 +27,11 @@ import { MarketClock } from '../modules/market-data/market.types';
 import type { AtrService } from '../modules/atr/atr.service';
 import type { TelemetryGateway } from '../modules/telemetry/telemetry.gateway';
 
+/** Parámetros de la carga simulada. */
 export interface LatencyBenchmarkOptions {
   /** Ticks por segundo entregados al procesador. */
   readonly ratePerSecond: number;
+  /** Duración de la carga en milisegundos. */
   readonly durationMs: number;
   /** Ticks por frame WebSocket (los proveedores agrupan trades en un mismo mensaje). */
   readonly batchSize: number;
@@ -33,6 +42,7 @@ export interface LatencyBenchmarkOptions {
   readonly cache: 'memory' | 'redis';
 }
 
+/** Reporte reproducible: se guarda como JSON y Markdown en reportes/latencia/. */
 export interface LatencyBenchmarkReport {
   readonly requirement: 'NFR-001';
   readonly generatedAt: string;
@@ -48,15 +58,20 @@ export interface LatencyBenchmarkReport {
   readonly data: {
     readonly ticksSent: number;
     readonly framesSent: number;
+    /** Ticks que el procesador entregó al consumidor. */
     readonly delivered: number;
+    /** Ticks que llegaron al motor de hedging con traza (los que entran a las estadísticas). */
     readonly measured: number;
+    /** Ticks perdidos en el camino; debe ser 0 para que la medición sea válida. */
     readonly dropped: number;
     readonly pattern: string;
   };
   readonly result: PipelineLatencySnapshot;
+  /** PASS si ningún tick superó los 200 ms de punta a punta. */
   readonly verdict: 'PASS' | 'FAIL';
 }
 
+/** Carga por defecto: 200 ticks/s durante 10 s, en frames de 5 ticks, sin Redis. */
 export const DEFAULT_BENCHMARK: LatencyBenchmarkOptions = {
   ratePerSecond: 200,
   durationMs: 10_000,
@@ -64,6 +79,7 @@ export const DEFAULT_BENCHMARK: LatencyBenchmarkOptions = {
   cache: 'memory',
 };
 
+/** Gateway Socket.IO falso: cualquier método existe y no hace nada (no hay clientes). */
 const silentGateway = new Proxy(
   {},
   { get: () => () => undefined },
@@ -71,6 +87,10 @@ const silentGateway = new Proxy(
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Crea la caché según el modo: un doble en memoria que acepta todo, o el RedisCacheService
+ * real con un prefijo único para no tocar datos existentes. `close` libera y limpia.
+ */
 async function createCache(kind: LatencyBenchmarkOptions['cache'], symbol: string) {
   if (kind === 'memory')
     return {
@@ -108,12 +128,14 @@ async function createCache(kind: LatencyBenchmarkOptions['cache'], symbol: strin
 /**
  * Recorre el camino productivo en memoria: AlpacaAdapter → MarketDataProcessor →
  * MarketAtrConsumer → PriceAnalysisService → StopLossService → DynamicStopLoss.
- * Redis, ATR y Socket.IO se sustituyen; su latencia de red no se incluye salvo `cacheDelayMs`.
+ * ATR y Socket.IO se sustituyen por dobles; Redis también, salvo con `cache: 'redis'`,
+ * que incluye el viaje de red real a Redis en el tramo consumerProcessing.
  */
 export async function runLatencyBenchmark(
   options: Partial<LatencyBenchmarkOptions> = {},
 ): Promise<LatencyBenchmarkReport> {
   const opts = { ...DEFAULT_BENCHMARK, ...options };
+  // Feed mock de Alpaca con cola amplia, para que la cola no descarte ticks durante la carga.
   const config = parseMarketDataConfig({
     MARKET_DATA_PROVIDER: 'alpaca',
     MARKET_DATA_ENABLED: 'true',
@@ -125,6 +147,7 @@ export async function runLatencyBenchmark(
     invalidateSymbol: () => undefined,
     suspendSymbol: () => undefined,
   } as unknown as AtrService;
+  // Se arma el mismo grafo de objetos que NestJS crea en producción, sin el contenedor.
   const latency = new PipelineLatencyService();
   const stopLoss = new StopLossService(silentGateway, latency);
   const analysis = new PriceAnalysisService(config, silentGateway, new InvestmentAnalysisService());
@@ -141,11 +164,13 @@ export async function runLatencyBenchmark(
   const processor = new MarketDataProcessor(config, new AlpacaAdapter(config), consumer);
   processor.setLive(true);
 
+  // Ejemplo: 200 ticks/s en frames de 5 → un frame cada 25 ms.
   const frames = Math.max(1, Math.round((opts.ratePerSecond * opts.durationMs) / 1000 / opts.batchSize));
   const intervalMs = (opts.batchSize * 1000) / opts.ratePerSecond;
   const start = performance.now();
   let id = 0;
   for (let frame = 0; frame < frames; frame++) {
+    // Cada frame se programa respecto al inicio, así un retraso no se acumula en los siguientes.
     const due = start + frame * intervalMs;
     const wait = due - performance.now();
     if (wait > 0) await sleep(wait);
@@ -163,12 +188,14 @@ export async function runLatencyBenchmark(
       t: new Date(nowMs).toISOString().replace('Z', `${String(id % 1_000_000).padStart(6, '0')}Z`),
       z: 'C',
     }));
+    // Igual que el cliente WebSocket real: la marca monotónica inicia la medición.
     processor.accept({
       messages,
       receivedAtMs: nowMs,
       receivedAtMonotonicMs: performance.now(),
     });
   }
+  // Se espera a que el procesador y la cola del stop-loss terminen antes de leer resultados.
   await processor.whenIdle();
   await new Promise<void>((resolve) => setImmediate(resolve));
   stopLoss.onModuleDestroy();
