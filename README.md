@@ -31,7 +31,7 @@ Abrir http://127.0.0.1:8080. El backend lee el `.env` existente (`MARKET_DATA_EN
 
 Se debe mantener el backend ejecutándose para registrar las observaciones del WebSocket. Al iniciar y cada cinco minutos recupera hasta 1.000 barras recientes de Twelve Data; una interrupción más larga puede dejar huecos fuera de esa ventana. Los datos ya guardados no caducan. La vista comienza en la jornada más reciente disponible y permite consultar las anteriores con el calendario.
 
-Validación con datos reales del 7 de octubre de 2026: [archivo y WebSocket](reportes/market_data/chart_live_2026-10-07.json), [navegador](reportes/market_data/chart_browser_2026-10-07.json), [escritorio](reportes/market_data/chart_desktop_2026-10-07.png) y [móvil](reportes/market_data/chart_mobile_2026-10-07.png). Ver contratos, límites y pruebas en el [README del backend](backend/README.md#gráfica-diaria-persistente).
+Los reportes históricos de validación se archivan fuera del repositorio. Ver contratos, límites y pruebas en el [README del backend](backend/README.md#gráfica-diaria-persistente).
 
 Se conserva [packages/atr_engine](packages/atr_engine/README.md) como biblioteca Dart independiente y referencia de pruebas; su [adaptador Flutter](packages/atr_engine_flutter/README.md) es opcional. El dashboard operativo usa el ATR del backend.
 
