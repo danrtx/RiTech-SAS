@@ -27,6 +27,17 @@ add('TLS-PROVIDER-MINIMUM', 'MEDIUM', /minVersion: ['"]TLSv1.3['"]/.test(ws) ? '
     ? 'Explicit TLS 1.3 minimum found in WebSocket client. Verify negotiated protocol and rejection of older servers in deployment.'
     : 'Market WebSocket socket options lack an explicit TLS 1.3 minimum.',
   'Set and test TLS 1.3 minimum on secure clients. Probe deployed destinations with certificate verification enabled.');
+const runtimeTls = read('backend/src/config/runtime-tls.ts');
+const productionStart = JSON.parse(read('backend/package.json')).scripts['start:prod'];
+const docker = read('backend/Dockerfile');
+const runtimeMinimum = productionStart.includes('--tls-min-v1.3') &&
+  docker.includes('"--tls-min-v1.3"') && /assertRuntimeTls\(process.env.NODE_ENV\)/.test(main) &&
+  /DEFAULT_MIN_VERSION !== 'TLSv1.3'/.test(runtimeTls);
+add('TLS-HTTP-CLIENTS', 'MEDIUM', runtimeMinimum ? 'REVIEW' : 'FAIL',
+  runtimeMinimum
+    ? 'Production startup requires Node TLS 1.3 minimum for native fetch and SDK HTTPS clients. Verify the deployed process uses this startup and collect negotiated protocol evidence.'
+    : 'Production runtime TLS 1.3 minimum is not enforced for HTTP/SDK clients.',
+  'Use the guarded production entrypoint; test native fetch against TLS 1.2-only servers and verify Gemini/history connections in deployment.');
 add('AES-AT-REST', 'HIGH', 'NOT_VERIFIED',
   'docker-compose.yml declares PostgreSQL and Redis named volumes and Redis AOF; no disk, volume or KMS encryption evidence is supplied.',
   'Provide deployment evidence of AES-256 or approved equivalent for volumes, snapshots and backups, including key ownership, access and rotation. AOF is not encryption.');
