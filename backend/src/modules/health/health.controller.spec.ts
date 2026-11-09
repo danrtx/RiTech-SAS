@@ -63,4 +63,27 @@ describe('HealthController', () => {
       expect(body.services.redis).toEqual({ status: 'down', error: 'ECONNREFUSED' });
     }
   });
+
+  it('GET /health/live siempre responde ok', () => {
+    const result = controller.liveness();
+    expect(result.status).toBe('ok');
+    expect(result.timestamp).toBeDefined();
+  });
+
+  it('GET /health/ready responde ready cuando todo está arriba', async () => {
+    dataSource.query.mockResolvedValue([{ '?column?': 1 }]);
+    redisClient.ping.mockResolvedValue('PONG');
+
+    const result = await controller.readiness();
+    expect(result.status).toBe('ready');
+    expect(result.services.postgres.status).toBe('up');
+    expect(result.services.redis.status).toBe('up');
+  });
+
+  it('GET /health/ready lanza 503 cuando un servicio falla', async () => {
+    dataSource.query.mockRejectedValue(new Error('down'));
+    redisClient.ping.mockResolvedValue('PONG');
+
+    await expect(controller.readiness()).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
 });
