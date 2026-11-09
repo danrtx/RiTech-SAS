@@ -29,3 +29,11 @@ build/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Deployment secrets and private runtime artifacts
+runtime.env
+*.pem
+*.key
+**/aws-deploy/
+**/letsencrypt/
+acceso-demo.txt
