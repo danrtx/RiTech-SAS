@@ -95,7 +95,8 @@ void main() {
           child: MaterialApp.router(routerConfig: router),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
       expect(find.text('Monitoreo del Sistema'), findsOneWidget);
     });
   });
