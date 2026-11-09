@@ -11,7 +11,7 @@ export class InvestmentConfig {
     return this.env.get<string>("GEMINI_API_KEY") || "";
   }
   get model(): string {
-    return this.env.get<string>("GEMINI_MODEL") || "gemini-3.8-flash";
+    return this.env.get<string>("GEMINI_MODEL") || "gemini-3.1-flash-lite";
   }
   number(name: string, fallback: number, min: number, max: number): number {
     const value = Number(this.env.get(name) ?? fallback);

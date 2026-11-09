@@ -48,6 +48,7 @@ export const CreateRecommendation = z
   .object({
     symbol: z.literal("QQQ"),
     quantity: z.number().int().positive().max(1000000),
+    mode: z.enum(["INTRADAY", "AFTER_CLOSE"]).optional(),
   })
   .strict();
 export const Question = z
@@ -74,6 +75,8 @@ export const ModelAnswer = z
   .object({ answer: prose, requiresNewEvaluation: z.boolean() })
   .strict();
 export interface MarketSnapshot {
+  quoteSource?: "closed_1min_bars";
+  sessionDateNY?: string;
   symbol: string;
   provider: string;
   simulated: boolean;

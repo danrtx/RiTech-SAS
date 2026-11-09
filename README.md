@@ -4,6 +4,41 @@ Plataforma de cobertura (hedging) sobre el NASDAQ 100: backend NestJS (monolito 
 
 ## Motor ATR de un minuto
 
+### Análisis al cierre para exposiciones fuera de horario
+
+Activa **Análisis al cierre** en el formulario. La API acepta
+`{"symbol":"QQQ","quantity":5,"mode":"AFTER_CLOSE"}`; omitir `mode` conserva
+el comportamiento intradía. Este modo consulta las velas históricas reales y
+selecciona la última sesión disponible que ya terminó, sin mezclarla con una
+sesión actual en curso. Calcula su propio ATR y conserva fecha y timestamps.
+Puede usarse de 18:00 a 20:00 de Colombia y permite preguntas durante hasta
+cuatro horas desde la generación. Ese plazo solo habilita conversación sobre
+el informe: nunca declara los precios históricos vigentes para operar.
+
+Se limita a históricos de menos de siete días, con cierre regular de 15:59
+(vela que termina a las 16:00 de Nueva York), referencia consecutiva y ATR listo.
+Una sesión incompleta o de cierre anticipado se rechaza hasta integrar un
+calendario bursátil. El resultado identifica `ANALISIS_AL_CIERRE`, la sesión
+analizada y la opinión retrospectiva; mantiene `decision=ABSTENERSE`,
+`operable=false` y ninguna orden. La variación mostrada sigue comparando las
+dos últimas velas, no la rentabilidad de todo el día. Requiere servicios locales
+encendidos, acceso al proveedor y cuota de Gemini.
+
+El agente puede producir un **análisis informativo** con las dos últimas velas
+cerradas de QQQ obtenidas de Twelve Data y el ATR histórico. Esta alternativa
+se utiliza cuando faltan cotizaciones aptas para el motor en vivo: exige velas
+consecutivas, con antigüedad inferior a tres minutos desde el inicio de la vela,
+ATR vigente y sesión regular. Conserva los timestamps del proveedor y vuelve a
+validar los datos después de la respuesta de Gemini. Se identifica como
+`ANALISIS_INFORMATIVO`, muestra `modelDecision` como opinión y mantiene
+`decision=ABSTENERSE`, `operable=false`. No alimenta el stop-loss ni altera su
+límite de vigencia. Los datos vencidos bloquean también este análisis.
+
+El modelo predeterminado es `gemini-3.1-flash-lite`, configurable mediante
+`GEMINI_MODEL` en el backend. La clave nunca se envía al frontend. Un modelo
+listado por Google no garantiza disponibilidad de generación: los errores del
+proveedor se muestran sin credenciales y sin sustituir respuestas por simulaciones.
+
 El [motor operativo NestJS](backend/README.md) recibe precios de Twelve Data, valida ticks, los procesa mediante Redis y calcula ATR Wilder. Publica resultados/alertas por Socket.IO y `GET /atr`. Incluye pruebas con Redis real, proveedor simulado, reconexión y referencia pandas.
 
 El dashboard Flutter muestra la evolución de **QQQ como referencia del Nasdaq 100**, con línea, velas de 1/5/15 minutos, volumen disponible, zoom, cursor OHLC y selección de jornadas. PostgreSQL conserva las observaciones y las velas de cada fecha; al cerrar el mercado o reiniciar la aplicación, el gráfico se consulta desde ese archivo. Las barras históricas de Twelve Data completan el gráfico sin disparar alertas retrospectivas ni alimentar artificialmente el ATR.
@@ -20,6 +55,15 @@ npm run start:dev
 ```
 
 En otra terminal:
+
+En Windows, si cambias `PORT` en el `.env` del backend (por ejemplo `PORT=3005`
+cuando otra aplicación ocupa 3000), inicia la web desde la raíz con
+`powershell -ExecutionPolicy Bypass -File scripts/start-web-local.ps1`.
+Este comando comprueba el backend y configura HTTP y Socket.IO con el mismo
+puerto, usando `127.0.0.1` para evitar diferencias entre IPv4 e IPv6.
+La web queda en `http://127.0.0.1:8085`. No copies claves del `.env` a Flutter.
+
+Alternativamente, con el puerto predeterminado 3000:
 
 ```bash
 cd frontend_mobile

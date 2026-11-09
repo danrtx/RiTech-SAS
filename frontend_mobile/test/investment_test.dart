@@ -9,12 +9,19 @@ class FakeInvestmentApi extends InvestmentApi {
   final bool expired;
   int requests = 0;
   String? decision;
+  String? requestedMode;
   @override
-  Future<Map<String, dynamic>> recommend(int quantity, String key) async {
+  Future<Map<String, dynamic>> recommend(int quantity, String key,
+      {String mode = 'INTRADAY'}) async {
     requests++;
+    requestedMode = mode;
     return {
       'id': 'test-id',
       'status': status,
+      if (status == 'ANALISIS_INFORMATIVO') ...{
+        'analysisMode': 'CLOSED_BARS_INFORMATIONAL_ONLY',
+        'modelDecision': 'COMPRAR',
+      },
       'decision': status == 'NO_DISPONIBLE' ? null : 'ABSTENERSE',
       'validUntil':
           DateTime.now().millisecondsSinceEpoch + (expired ? -1000 : 60000),
@@ -26,7 +33,15 @@ class FakeInvestmentApi extends InvestmentApi {
         'reasons': ['CONTEXTO_FINANCIERO_AUSENTE']
       },
       'indicators': {'price': 100, 'atr': 0.5},
-      'uncertainty': 'ALTA'
+      'uncertainty': 'ALTA',
+      if (mode == 'AFTER_CLOSE') ...{
+        'status': 'ANALISIS_AL_CIERRE',
+        'analysisMode': 'AFTER_CLOSE',
+        'sessionDateNY': '2026-11-06',
+        'modelDecision': 'MANTENER',
+        'questionsUntil':
+            DateTime.now().add(const Duration(hours: 4)).millisecondsSinceEpoch,
+      }
     };
   }
 
@@ -45,6 +60,45 @@ class FakeInvestmentApi extends InvestmentApi {
 }
 
 void main() {
+  testWidgets('sends explicit closing mode and displays the historical session',
+      (tester) async {
+    final api = FakeInvestmentApi();
+    await tester.pumpWidget(MaterialApp(home: InvestmentScreen(api: api)));
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Solicitar recomendación'), 150,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Solicitar recomendación'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+        find.text('Análisis fuera de horario · QQQ'), 150,
+        scrollable: find.byType(Scrollable).first);
+    expect(api.requestedMode, 'AFTER_CLOSE');
+    expect(find.text('2026-11-06'), findsOneWidget);
+    expect(find.textContaining('No son precios actuales'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('separates model opinion from operative decision',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+        home: InvestmentScreen(
+            api: FakeInvestmentApi(status: 'ANALISIS_INFORMATIVO'))));
+    await tester.scrollUntilVisible(find.text('Solicitar recomendación'), 150,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Solicitar recomendación'));
+    await tester.pumpAndSettle();
+    // The explanatory form is taller; reveal the response on a small screen.
+    await tester.drag(find.byType(ListView), const Offset(0, -450));
+    await tester.pumpAndSettle();
+    expect(find.text('Análisis informativo · QQQ'), findsOneWidget);
+    expect(find.textContaining('Opinión del modelo (informativa)'),
+        findsOneWidget);
+    expect(
+        find.textContaining('Decisión operativa: ABSTENERSE'), findsOneWidget);
+    expect(find.textContaining('No es una cotización instantánea'),
+        findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   test(
       'request IDs are distinct UUIDs and errors do not expose provider payloads',
       () {
@@ -58,7 +112,12 @@ void main() {
     final api = FakeInvestmentApi();
     await tester.pumpWidget(MaterialApp(home: InvestmentScreen(api: api)));
     expect(find.text('Iniciar sesión'), findsNothing);
+    await tester.scrollUntilVisible(find.text('Solicitar recomendación'), 150,
+        scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Solicitar recomendación'));
+    await tester.pumpAndSettle();
+    // The explanatory form is taller; reveal the response on a small screen.
+    await tester.drag(find.byType(ListView), const Offset(0, -450));
     await tester.pumpAndSettle();
     expect(find.text('ABSTENERSE'), findsOneWidget);
     expect(api.requests, 1);
@@ -82,7 +141,12 @@ void main() {
     testWidgets('renders $status safely', (tester) async {
       await tester.pumpWidget(MaterialApp(
           home: InvestmentScreen(api: FakeInvestmentApi(status: status))));
+      await tester.scrollUntilVisible(find.text('Solicitar recomendación'), 150,
+          scrollable: find.byType(Scrollable).first);
       await tester.tap(find.text('Solicitar recomendación'));
+      await tester.pumpAndSettle();
+      // The explanatory form is taller; reveal the response on a small screen.
+      await tester.drag(find.byType(ListView), const Offset(0, -450));
       await tester.pumpAndSettle();
       expect(
           find.text(status == 'NO_DISPONIBLE'
@@ -97,12 +161,24 @@ void main() {
     final api = FakeInvestmentApi(expired: true);
     await tester.pumpWidget(MaterialApp(home: InvestmentScreen(api: api)));
     await tester.enterText(find.byType(TextField).first, '0');
+    await tester.scrollUntilVisible(find.text('Solicitar recomendación'), 150,
+        scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Solicitar recomendación'));
+    await tester.pumpAndSettle();
+    // The explanatory form is taller; reveal the response on a small screen.
+    await tester.drag(find.byType(ListView), const Offset(0, -450));
     await tester.pumpAndSettle();
     expect(api.requests, 0);
     expect(find.textContaining('entero positivo'), findsOneWidget);
+    await tester.drag(find.byType(ListView), const Offset(0, 450));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '1');
+    await tester.scrollUntilVisible(find.text('Solicitar recomendación'), 150,
+        scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Solicitar recomendación'));
+    await tester.pumpAndSettle();
+    // The explanatory form is taller; reveal the response on a small screen.
+    await tester.drag(find.byType(ListView), const Offset(0, -450));
     await tester.pumpAndSettle();
     expect(find.textContaining('Recomendación vencida'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());

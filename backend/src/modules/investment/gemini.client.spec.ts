@@ -73,4 +73,20 @@ describe("Gemini official SDK adapter", () => {
       "GEMINI_NO_CONFIGURADO",
     );
   });
+  it.each([
+    [504, "GEMINI_TIEMPO_AGOTADO"],
+    [404, "GEMINI_MODELO_NO_DISPONIBLE"],
+  ])(
+    "identifies provider failure %s without exposing its message",
+    async (status, code) => {
+      generateContent.mockRejectedValue({
+        status,
+        message: "secret credential",
+      });
+      await expect(client.generate("analysis", {})).rejects.toThrow(
+        code as string,
+      );
+      expect(generateContent).toHaveBeenCalledTimes(1);
+    },
+  );
 });

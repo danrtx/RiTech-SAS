@@ -36,6 +36,32 @@ const config = new ConfigService({
 const atrConfig = new AtrConfig(new ConfigService());
 
 describe("Historical ATR seed for the investment agent", () => {
+  it("selects a completed session and its ATR instead of mixing it with today's forming session", async () => {
+    const closeStart = Date.parse("2026-11-09T20:20:00Z");
+    const closed = bars().map((bar, i) => ({
+      ...bar,
+      startTimeMs: closeStart + i * 60000,
+    }));
+    const morning = bars().map((bar, i) => ({
+      ...bar,
+      startTimeMs: Date.parse("2026-11-10T14:30:00Z") + i * 60000,
+    }));
+    jest.setSystemTime(Date.parse("2026-11-10T16:00:00Z"));
+    fetchHistory.mockResolvedValue([...closed, ...morning]);
+    const service = new InvestmentHistoryAtr(config, atrConfig);
+    await service.refresh();
+    const review = service.closingSession()!;
+    expect(review.date).toBe("2026-11-09");
+    expect(review.indicator?.status).toBe("ready");
+    expect(review.indicator?.minute).toBe(Date.parse("2026-11-09T20:59:00Z"));
+    expect(review.bars.map((b) => b.startTimeMs)).toEqual([
+      Date.parse("2026-11-09T20:58:00Z"),
+      Date.parse("2026-11-09T20:59:00Z"),
+    ]);
+    fetchHistory.mockResolvedValue(closed.slice(0, -1));
+    await service.refresh();
+    expect(service.closingSession()).toBeUndefined();
+  });
   it("does not overlap requests or publish a result after shutdown", async () => {
     let resolve!: (value: HistoricalBar[]) => void;
     fetchHistory.mockImplementation(

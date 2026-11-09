@@ -10,6 +10,7 @@ import { SymbolAtr } from "../atr/atr.calculator";
 import { AtrResult, MINUTE_MS } from "../market-data/market.types";
 import { MarketDataConfig } from "../market-data/market-data.config";
 import { HistoricalBar } from "../market-chart/chart.types";
+import { sessionDate, sessionTime } from "../market-chart/chart.types";
 import { fetchChartHistory } from "../market-chart/twelve-chart-history";
 import { regularWindow } from "./investment.risk";
 
@@ -57,6 +58,8 @@ export class InvestmentHistoryAtr
 {
   private readonly logger = new Logger(InvestmentHistoryAtr.name);
   private latest?: AtrResult;
+  private closedBars: HistoricalBar[] = [];
+  private sourceBars: HistoricalBar[] = [];
   private timer?: NodeJS.Timeout;
   private request?: AbortController;
   private stopped = false;
@@ -68,6 +71,30 @@ export class InvestmentHistoryAtr
 
   snapshot(): AtrResult | undefined {
     return this.latest && { ...this.latest };
+  }
+
+  recentBars(): HistoricalBar[] {
+    return this.closedBars.map((bar) => ({ ...bar }));
+  }
+
+  closingSession(now = Date.now()) {
+    const today = sessionDate(now);
+    const completed = this.sourceBars.filter((bar) => {
+      const date = sessionDate(bar.startTimeMs);
+      return date < today || (date === today && sessionTime(now) >= "16:00");
+    });
+    const last = completed[completed.length - 1];
+    // Do not silently label an incomplete day as the official regular close.
+    if (!last || sessionTime(last.startTimeMs) !== "15:59") return undefined;
+    const date = sessionDate(last.startTimeMs);
+    const bars = completed.filter(
+      (bar) => sessionDate(bar.startTimeMs) === date,
+    );
+    return {
+      date,
+      bars: bars.slice(-2).map((bar) => ({ ...bar })),
+      indicator: historicalAtr(bars, this.atr.options, now),
+    };
   }
 
   async onApplicationBootstrap() {
@@ -113,6 +140,8 @@ export class InvestmentHistoryAtr
       const result = historicalAtr(bars, this.atr.options, Date.now());
       // Empty/partial responses invalidate an older seed instead of hiding a gap.
       this.latest = result;
+      this.closedBars = bars.slice(-2).map((bar) => ({ ...bar }));
+      this.sourceBars = bars.map((bar) => ({ ...bar }));
       this.logger.log({
         event: "investment_atr_history_loaded",
         bars: bars.length,

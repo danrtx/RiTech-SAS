@@ -12,6 +12,70 @@ export class InvestmentMarket {
     private readonly atr: AtrService,
     private readonly historical: InvestmentHistoryAtr,
   ) {}
+  async closingSnapshot(): Promise<MarketSnapshot | undefined> {
+    await this.historical.refresh();
+    const source = this.historical.closingSession();
+    const current = this.snapshot();
+    if (!source || current.provider !== "twelvedata" || current.simulated)
+      return undefined;
+    const [reference, last] = source.bars;
+    if (!reference || !last) return undefined;
+    const atr = source.indicator?.atr ?? null;
+    return {
+      ...current,
+      live: false,
+      quoteSource: "closed_1min_bars",
+      sessionDateNY: source.date,
+      price: last.close,
+      quotedAt: last.startTimeMs,
+      volume: last.volume,
+      referencePrice: reference.close,
+      referenceAt: reference.startTimeMs,
+      change: last.close - reference.close,
+      changePercent: (last.close / reference.close - 1) * 100,
+      atr,
+      atrAt: source.indicator?.minute ?? null,
+      atrStatus: source.indicator?.status ?? "insufficientData",
+      atrSource: "provider_ohlc",
+      volatility:
+        atr === null
+          ? "DESCONOCIDA"
+          : atr / last.close >= 0.01
+            ? "ALTA"
+            : atr / last.close >= 0.003
+              ? "MEDIA"
+              : "BAJA",
+    };
+  }
+  /** Informational analysis only: never marks historical prices as live ticks. */
+  closedBarSnapshot(): MarketSnapshot | undefined {
+    const current = this.snapshot();
+    if (current.provider !== "twelvedata" || current.simulated)
+      return undefined;
+    const bars = this.historical.recentBars();
+    const [reference, last] = bars;
+    if (!reference || !last) return undefined;
+    return {
+      ...current,
+      quoteSource: "closed_1min_bars",
+      live: false,
+      price: last.close,
+      quotedAt: last.startTimeMs,
+      referencePrice: reference.close,
+      referenceAt: reference.startTimeMs,
+      volume: last.volume,
+      change: last.close - reference.close,
+      changePercent: (last.close / reference.close - 1) * 100,
+      volatility:
+        current.atr === null
+          ? "DESCONOCIDA"
+          : current.atr / last.close >= 0.01
+            ? "ALTA"
+            : current.atr / last.close >= 0.003
+              ? "MEDIA"
+              : "BAJA",
+    };
+  }
   snapshot(): MarketSnapshot {
     const history = this.prices.getHistory(1000);
     const last = history.samples[history.samples.length - 1];
