@@ -21,6 +21,7 @@
     "backtest:validate": "ts-node scripts/backtest.ts --validate-only",
     "qa:diego": "node scripts/verify-diego.cjs",
     "audit:security": "node scripts/audit-security.cjs",
+    "qa:tls:local": "node scripts/verify-tls-local.cjs",
     "test:cov": "jest --coverage",
     "test:integration": "node scripts/run-integration.cjs",
     "mock:feed": "ts-node scripts/mock-feed.ts",

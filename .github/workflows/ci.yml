@@ -64,6 +64,9 @@ jobs:
       - name: Auditoria de seguridad (informe, no certificacion)
         run: npm run audit:security -- --output=${{ runner.temp }}/security-audit.json
 
+      - name: Verificar conexiones TLS locales
+        run: npm run qa:tls:local -- --output=${{ runner.temp }}/tls-local.json
+
       - name: Build
         run: npm run build
 
@@ -100,6 +103,7 @@ jobs:
             ${{ runner.temp }}/streaming_metrics.json
             ${{ runner.temp }}/epic01_metrics.json
             ${{ runner.temp }}/security-audit.json
+            ${{ runner.temp }}/tls-local.json
           if-no-files-found: warn
 
       - name: Evidencia NFR-001
