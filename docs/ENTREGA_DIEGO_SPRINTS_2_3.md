@@ -1,5 +1,7 @@
 # Entrega de Diego — sprints 2 y 3
 
+Actualización del 8 de noviembre de 2026: [entrega reproducible, alcance de cierre y dependencias por integrante](ENTREGA_DIEGO_Y_DEPENDENCIAS.md). Los resultados siguientes se conservan como registro de la entrega anterior.
+
 Revisión de asignaciones en ClickUp: 17 de octubre de 2026. Responsable confirmado: **Diego Alejandro Ocampo Madroñero**.
 
 ## Tareas asignadas y resultado

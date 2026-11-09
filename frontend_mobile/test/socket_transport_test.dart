@@ -20,6 +20,20 @@ class FakeTransport implements TelemetryTransport {
 }
 
 void main() {
+  test('paper execution reaches state and clears on disconnect', () async {
+    final transport = FakeTransport();
+    final client = TelemetryWebSocketClient(transport: transport);
+    final notifier = TelemetryNotifier(client);
+    notifier.switchSymbol('QQQ');
+    transport.receive('connect');
+    transport.receive('execution_notification', {'symbol': 'QQQ', 'correlationId': 'test-1', 'simulated': true, 'status': 'SIMULATED_ACCEPTED'});
+    await Future<void>.delayed(Duration.zero);
+    expect(notifier.state.lastExecution?['status'], 'SIMULATED_ACCEPTED');
+    transport.receive('disconnect');
+    await Future<void>.delayed(Duration.zero);
+    expect(notifier.state.lastExecution, isNull);
+    notifier.dispose(); client.dispose();
+  });
   test(
       'connect waits for handshake and restores symbol subscription after reconnect',
       () async {

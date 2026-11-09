@@ -6,6 +6,8 @@ import 'core/router/app_router.dart';
 import 'features/notifications/application/push_notifications_controller.dart';
 import 'features/notifications/domain/hedging_alert.dart';
 
+/// Widget raíz. Además del tema y el router, conecta las alertas push con la navegación
+/// y muestra un aviso dentro de la app cuando llega una alerta con la app abierta.
 class RiTechApp extends ConsumerStatefulWidget {
   const RiTechApp({super.key});
 
@@ -14,6 +16,7 @@ class RiTechApp extends ConsumerStatefulWidget {
 }
 
 class _RiTechAppState extends ConsumerState<RiTechApp> {
+  /// Permite mostrar el aviso de alerta desde fuera de cualquier pantalla concreta.
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   late final PushNotificationsController _push;
 
@@ -33,10 +36,14 @@ class _RiTechAppState extends ConsumerState<RiTechApp> {
     super.dispose();
   }
 
+  /// Aviso inferior con el botón "Ver" que abre el detalle de la orden.
   void _showInAppAlert(HedgingAlert alert) {
     _messenger.currentState
       ?..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
+        // Alerta crítica: los 4 s por defecto no dan tiempo de reaccionar.
+        duration: const Duration(seconds: 15),
+        showCloseIcon: true,
         content: Text(
             'Hedging activado en ${alert.symbol}: ${alert.policy.label.toLowerCase()}'),
         action: SnackBarAction(
@@ -47,6 +54,7 @@ class _RiTechAppState extends ConsumerState<RiTechApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
+    // Cada alerta nueva recibida en primer plano dispara el aviso.
     ref.listen(pushNotificationsProvider.select((s) => s.lastForegroundAlert),
         (previous, next) {
       if (next != null && !identical(previous, next)) _showInAppAlert(next);

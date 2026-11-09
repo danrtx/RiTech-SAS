@@ -17,6 +17,11 @@ import 'package:ritech_mobile/features/telemetry/presentation/screens/telemetry_
 import 'chart_test.dart' show FakeRepository;
 import 'socket_transport_test.dart' show FakeTransport;
 
+// Pruebas de las notificaciones push: validación del mensaje, flujo del controlador
+// (permisos, registro, foreground, background, arranque en frío) y deep link al detalle.
+// Firebase, el backend y las notificaciones locales se reemplazan por dobles.
+
+/// Mensaje válido igual al que envía el backend; `overrides` cambia campos puntuales.
 Map<String, Object?> payload([Map<String, Object?> overrides = const {}]) => {
       'schemaVersion': '1',
       'type': 'HEDGING_ACTIVATED',
@@ -31,6 +36,7 @@ Map<String, Object?> payload([Map<String, Object?> overrides = const {}]) => {
       ...overrides,
     };
 
+/// Firebase Messaging falso: los StreamController simulan los eventos de FCM.
 class FakeClient implements PushMessagingClient {
   FakeClient({this.permission = PushPermission.granted, this.initial});
   PushPermission permission;
@@ -54,6 +60,7 @@ class FakeClient implements PushMessagingClient {
   Future<IncomingPush?> getInitialMessage() async => initial;
 }
 
+/// Backend falso: guarda los tokens registrados y puede simular una caída con `fail`.
 class FakeRegistration implements DeviceRegistrationApi {
   final tokens = <String>[];
   bool fail = false;
@@ -64,6 +71,7 @@ class FakeRegistration implements DeviceRegistrationApi {
   }
 }
 
+/// Notificaciones locales falsas: guarda lo mostrado y permite simular el toque (`onTap`).
 class FakeNotifier implements LocalAlertNotifier {
   final shown = <HedgingAlert>[];
   void Function(Map<String, Object?>)? onTap;
@@ -74,6 +82,7 @@ class FakeNotifier implements LocalAlertNotifier {
   Future<void> show(HedgingAlert alert) async => shown.add(alert);
 }
 
+/// Deja correr las tareas pendientes (eventos de los streams) antes de verificar.
 Future<void> settle() => Future<void>.delayed(Duration.zero);
 
 void main() {

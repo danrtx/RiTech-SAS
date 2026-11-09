@@ -106,6 +106,10 @@ export class TelemetryGateway
     });
   }
 
+  broadcastExecutionNotification(event: Record<string, unknown> & { symbol: string }) {
+    this.server?.to(`symbol:${event.symbol}`).emit('execution_notification', event);
+  }
+
   broadcastAtr(result: AtrResult) {
     this.latestAtr.set(result.symbol, result);
     this.server?.to(`symbol:${result.symbol}`).emit("atr_result", result);

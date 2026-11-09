@@ -5,6 +5,8 @@ analyzer:
     - build/**
     - "**/*.g.dart"
     - web/**
+    - android/**
+    - ios/**
   errors:
     missing_return: error
     dead_code: warning

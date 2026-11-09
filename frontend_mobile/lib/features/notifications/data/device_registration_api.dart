@@ -1,3 +1,6 @@
+/// Registro del dispositivo en el backend para recibir las alertas push.
+library;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../../../core/config/app_config.dart';
@@ -7,6 +10,7 @@ abstract interface class DeviceRegistrationApi {
   Future<void> register(String token);
 }
 
+/// Implementación con Dio contra `POST /notifications/devices`.
 class HttpDeviceRegistrationApi implements DeviceRegistrationApi {
   HttpDeviceRegistrationApi([Dio? dio])
       : _dio = dio ??
@@ -17,6 +21,7 @@ class HttpDeviceRegistrationApi implements DeviceRegistrationApi {
             ));
   final Dio _dio;
 
+  /// Plataforma que se informa al backend: `web`, `ios` o `android`.
   static String get platform {
     if (kIsWeb) return 'web';
     return defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';

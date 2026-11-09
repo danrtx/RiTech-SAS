@@ -167,6 +167,9 @@ describe('Cliente WebSocket de market data', () => {
     expect(factory.mock.calls[0][0]).toBe(
       'wss://stream.data.alpaca.markets/v2/test',
     );
+    expect(factory.mock.calls[0][1]).toMatchObject({
+      minVersion: 'TLSv1.3', rejectUnauthorized: true,
+    });
     expect(instance.getStatus()).toMatchObject({
       state: 'LIVE',
       feed: 'test',
