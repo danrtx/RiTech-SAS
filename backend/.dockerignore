@@ -5,7 +5,8 @@ coverage
 *.spec.ts
 *.test.ts
 src/**/testing/
-scripts/
+scripts/*
+!scripts/healthcheck.cjs
 INFORME_MIGRACION_TWELVE_DATA.md
 LOGICA_INVERSION_ALERTAS_Y_ENDPOINTS.md
 PLAN_WEBSOCKET_MARKET_DATA.md
