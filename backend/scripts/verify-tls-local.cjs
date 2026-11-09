@@ -7,6 +7,12 @@ const tls = require('node:tls');
 const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
 const { datastoreTls } = require('../src/config/datastore-tls');
+const { serverTls } = require('../src/config/server-tls');
+const { Test } = require('@nestjs/testing');
+const { io } = require('socket.io-client');
+const { TelemetryGateway } = require('../src/modules/telemetry/telemetry.gateway');
+const { MarketClock } = require('../src/modules/market-data/market.types');
+const { AtrConfig } = require('../src/modules/atr/atr.config');
 
 const results = [];
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'ritech-tls-'));
@@ -15,10 +21,10 @@ const key = path.join(directory, 'key.pem');
 const openssl = process.env.OPENSSL_BIN || (process.platform === 'win32'
   ? 'C:\\Program Files\\Git\\usr\\bin\\openssl.exe' : 'openssl');
 
-async function handshake(policy, version) {
+async function handshake(policy, version, serverOptions) {
   const sockets = new Set();
   const server = tls.createServer({ key: fs.readFileSync(key), cert: fs.readFileSync(ca),
-    minVersion: version, maxVersion: version });
+    minVersion: version, maxVersion: version, ...serverOptions });
   server.on('connection', socket => {
     sockets.add(socket);
     socket.on('close', () => sockets.delete(socket));
@@ -47,7 +53,7 @@ async function handshake(policy, version) {
 (async () => {
   execFileSync(openssl, ['req', '-x509', '-newkey', 'rsa:2048', '-nodes',
     '-keyout', key, '-out', ca, '-days', '1', '-subj', '/CN=localhost',
-    '-addext', 'subjectAltName=DNS:localhost'], { stdio: 'ignore', timeout: 30000 });
+    '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], { stdio: 'ignore', timeout: 30000 });
   for (const prefix of ['DB', 'REDIS']) {
     for (const scenario of ['trusted', 'old-protocol', 'untrusted', 'wrong-host']) {
       const env = { NODE_ENV: 'production', [`${prefix}_TLS_ENABLED`]: 'true',
@@ -67,6 +73,72 @@ async function handshake(policy, version) {
       results.push({ prefix, scenario, passed: true, ...result });
     }
   }
+  const env = { NODE_ENV: 'production', SERVER_TLS_ENABLED: 'true',
+    SERVER_TLS_CERT_FILE: ca, SERVER_TLS_KEY_FILE: key };
+  const serverOptions = serverTls(name => env[name]);
+  for (const scenario of ['trusted', 'old-protocol', 'untrusted', 'wrong-host']) {
+    const version = scenario === 'old-protocol' ? 'TLSv1.2' : 'TLSv1.3';
+    const result = await handshake({ minVersion: version, maxVersion: version,
+      rejectUnauthorized: true, servername: scenario === 'wrong-host' ? 'wrong.invalid' : 'localhost',
+      ...(scenario === 'untrusted' ? {} : { ca: fs.readFileSync(ca) }) }, 'TLSv1.3', serverOptions);
+    if (scenario === 'trusted') {
+      assert.deepEqual(result, { connected: true, authorized: true, protocol: 'TLSv1.3' });
+    } else {
+      assert.equal(result.connected, false);
+      const expected = scenario === 'old-protocol' ? ['ERR_SSL_TLSV1_ALERT_PROTOCOL_VERSION']
+        : scenario === 'wrong-host' ? ['ERR_TLS_CERT_ALTNAME_INVALID']
+        : ['DEPTH_ZERO_SELF_SIGNED_CERT', 'SELF_SIGNED_CERT_IN_CHAIN'];
+      assert.ok(expected.includes(result.code), `Unexpected failure for SERVER/${scenario}: ${result.code}`);
+    }
+    results.push({ prefix: 'SERVER', scenario, passed: true, ...result });
+  }
+  // Exercise the real Nest adapter and telemetry gateway over the same HTTPS listener.
+  const module = await Test.createTestingModule({ providers: [TelemetryGateway,
+    { provide: MarketClock, useValue: { now: () => Date.now() } },
+    { provide: AtrConfig, useValue: { options: { symbols: ['QQQ'] } } },
+  ] }).compile();
+  const app = module.createNestApplication({ httpsOptions: serverOptions, logger: false });
+  let client;
+  try {
+    await app.listen(0, '127.0.0.1');
+    const port = app.getHttpServer().address().port;
+    const response = await new Promise((resolve, reject) => {
+      const request = require('node:https').get({ hostname: '127.0.0.1', port,
+        servername: 'localhost', ca: fs.readFileSync(ca), minVersion: 'TLSv1.3',
+        rejectUnauthorized: true }, res => {
+        const protocol = res.socket.getProtocol();
+        res.resume();
+        resolve({ status: res.statusCode, protocol });
+      });
+      request.once('error', reject);
+      request.setTimeout(5000, () => request.destroy(new Error('HTTPS timeout')));
+    });
+    assert.deepEqual(response, { status: 404, protocol: 'TLSv1.3' });
+    results.push({ prefix: 'APP', scenario: 'https-listener', passed: true, ...response });
+    const plaintextRejected = await new Promise(resolve => {
+      const request = require('node:http').get({ hostname: '127.0.0.1', port }, res => {
+        res.resume(); resolve(false);
+      });
+      request.once('error', error => resolve(error.code === 'ECONNRESET'));
+      request.setTimeout(5000, () => { resolve(false); request.destroy(); });
+    });
+    assert.equal(plaintextRejected, true);
+    results.push({ prefix: 'APP', scenario: 'plaintext-rejected', passed: true });
+    client = io(`https://127.0.0.1:${port}/telemetry`, { transports: ['websocket'],
+      autoConnect: false, reconnection: false, timeout: 5000, rejectUnauthorized: true,
+      ca: fs.readFileSync(ca), transportOptions: { websocket: { servername: 'localhost', minVersion: 'TLSv1.3' } } });
+    const ack = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('WSS timeout')), 6000);
+      client.once('connection_ack', value => { clearTimeout(timeout); resolve(value); });
+      client.once('connect_error', error => { clearTimeout(timeout); reject(error); });
+      client.connect();
+    });
+    assert.equal(ack.status, 'connected');
+    results.push({ prefix: 'APP', scenario: 'telemetry-wss', passed: true });
+  } finally {
+    client?.disconnect();
+    await app.close();
+  }
 })().catch(error => {
   results.push({ passed: false, code: error.code || 'VERIFICATION_FAILED' });
   process.exitCode = 1;
@@ -74,8 +146,8 @@ async function handshake(policy, version) {
   // Only remove the unique temporary directory created by this process.
   fs.rmSync(directory, { recursive: true, force: true });
   const report = { generatedAt: new Date().toISOString(),
-    scope: 'Local TLS servers and actual datastoreTls policy; not PostgreSQL/Redis protocol integration or production certification',
-    passed: results.length === 8 && results.every(item => item.passed), results };
+    scope: 'Local TLS policies, Nest HTTPS listener and actual telemetry WSS gateway; not PostgreSQL/Redis protocol integration or production certification',
+    passed: results.length === 15 && results.every(item => item.passed), results };
   const output = process.argv.find(arg => arg.startsWith('--output='));
   if (output) {
     const destination = path.resolve(output.slice(9));

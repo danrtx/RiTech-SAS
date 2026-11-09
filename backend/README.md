@@ -53,6 +53,30 @@ El 7 de octubre de 2026 se verificaron 293 velas del día, 390 de la jornada ant
 
 Documentación del proveedor: [time series de Twelve Data](https://twelvedata.com/docs#time-series) y [zonas horarias](https://support.twelvedata.com/en/articles/5745849-timezones).
 
+## Stop-loss dinámico por velocidad de caída
+
+`DynamicStopLoss` calcula la caída porcentual por minuto entre dos ticks consecutivos del mismo símbolo: `(precioAnterior - precioActual) / precioAnterior * 100 * 60000 / intervaloMs`.
+
+| Velocidad de caída | Política | Espera desde la detección |
+| --- | --- | --- |
+| Mayor que cero y menor que 0,1 %/min | SLOW | 5 minutos |
+| De 0,1 a 0,5 %/min, incluidos ambos límites | INTERMEDIATE | 1 minuto |
+| Mayor que 0,5 %/min | FAST | Sin espera deliberada |
+
+Una caída más rápida puede acortar la espera; nuevos ticks nunca la prolongan. La recuperación al precio de inicio cancela el episodio y permite otro. Datos con antigüedad o huecos mayores de 2 segundos invalidan el episodio; ticks duplicados no disparan otra solicitud. El vencimiento requiere datos vigentes. La cola usa `setImmediate` y procesa lotes de 128 muestras fuera de la ingesta; su límite es 4096 y un desbordamiento invalida las decisiones pendientes.
+
+La salida es `STOP_LOSS_REQUEST`, una solicitud, no una confirmación de venta. La ejecución conectada actualmente es `PaperExecutionService` en modo `paper`; no envía órdenes reales. La alerta Socket.IO, la solicitud de ejecución y el aviso push tienen manejo independiente de errores para que el fallo de uno no impida los demás. No se reintentan órdenes automáticamente ante un resultado desconocido.
+
+## HTTPS y auditoría de cifrado
+
+El backend admite HTTPS y WSS en el mismo puerto mediante `SERVER_TLS_ENABLED=true`, `SERVER_TLS_CERT_FILE` y `SERVER_TLS_KEY_FILE`. Los archivos PEM deben residir fuera del repositorio; el certificado debe ser válido para el nombre del servidor y confiable para los clientes. Flutter debe usar `API_BASE_URL=https://...` y `WS_BASE_URL=https://.../telemetry`. No desactivar la validación de certificados.
+
+Con `NODE_ENV=production` se exige TLS directo en el backend, además del TLS ya obligatorio para PostgreSQL y Redis. Sin certificado y clave válidos el arranque falla. Un proxy de producción debe conectar a este backend por HTTPS. En desarrollo, sin configuración TLS, sigue disponible HTTP. No se habilita un segundo puerto HTTP ni una redirección desde texto plano. La versión mínima es TLS 1.3.
+
+`npm run qa:tls:local -- --output=RUTA_EXTERNA/tls.json` verifica las políticas reales del servidor y de los clientes DB/Redis: negociación TLS 1.3, rechazo de TLS 1.2, CA no confiable y nombre incorrecto. Además comprueba el listener HTTPS de Nest, rechazo de HTTP y conexión WSS al gateway de telemetría. Usa un certificado temporal solo para la prueba y elimina su clave al finalizar.
+
+`npm run audit:security -- --output=RUTA_EXTERNA/auditoria.json` lista hallazgos, severidad, remediación y evidencia. Un resultado local correcto no certifica el despliegue: todavía se requieren conexiones a PostgreSQL/Redis reales con TLS, certificados desplegados, revisión de logs y evidencia AES-256 (o equivalente aprobado) de volúmenes, snapshots y respaldos, junto con custodia y rotación de claves. Los volúmenes Docker y Redis AOF no acreditan cifrado en reposo. El informe permanece `NOT_APPROVED` mientras falte esa evidencia.
+
 ## Enunciado RiTech: variación del índice ×2
 
 El modelo académico `SIMPLE_2X` calcula variación de la inversión = variación de la referencia ×2, sin acumular ventanas ni simular una orden al broker. Los endpoints y eventos incluyen `marketReference`: QQQ se declara `ETF_PROXY`, `matchesRequiredIndex:false`; no es NDX. Los datos del mock llevan `simulated:true`. El feed QQQ no proporciona la cotización exacta del índice exigido por el enunciado.

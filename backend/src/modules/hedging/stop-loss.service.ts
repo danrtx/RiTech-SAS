@@ -87,12 +87,20 @@ export class StopLossService implements OnModuleInit, OnModuleDestroy {
           ...trigger,
           executionStatus: "REQUESTED",
         });
-        this.execution?.execute(trigger);
       } catch {
         this.logger.error("stop_loss_notification_failed");
       }
+      try {
+        this.execution?.execute(trigger);
+      } catch {
+        this.logger.error("stop_loss_execution_failed");
+      }
       // Solo encola: la entrega FCM nunca bloquea ni hace fallar el trading.
-      this.push?.notifyHedgingActivated(trigger);
+      try {
+        this.push?.notifyHedgingActivated(trigger);
+      } catch {
+        this.logger.error("stop_loss_push_failed");
+      }
     }
   }
 

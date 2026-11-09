@@ -1,8 +1,35 @@
 import { DynamicStopLoss } from "./dynamic-stop-loss";
 import { StopLossService } from "./stop-loss.service";
 import { TelemetryGateway } from "../telemetry/telemetry.gateway";
+import { PaperExecutionService } from "./paper-execution.service";
+import { PushNotificationService } from "../notifications/push-notification.service";
 
 describe("dynamic stop loss", () => {
+  it.each(['alert', 'execution', 'push'])(
+    'isolates a %s delivery failure without duplicating the episode', async (failure) => {
+      const broadcastHedgingAlert = jest.fn(() => { if (failure === 'alert') throw new Error('offline'); });
+      const execute = jest.fn(() => { if (failure === 'execution') throw new Error('offline'); });
+      const notifyHedgingActivated = jest.fn(() => { if (failure === 'push') throw new Error('offline'); });
+      const service = new StopLossService(
+        { broadcastHedgingAlert } as unknown as TelemetryGateway, undefined,
+        { notifyHedgingActivated } as unknown as PushNotificationService,
+        { execute } as unknown as PaperExecutionService,
+      );
+      try {
+        const now = Date.now();
+        service.enqueue({ symbol: 'QQQ', price: 100, eventTimeMs: now - 1000 });
+        service.enqueue({ symbol: 'QQQ', price: 99, eventTimeMs: now - 500 });
+        service.enqueue({ symbol: 'QQQ', price: 98, eventTimeMs: now });
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(broadcastHedgingAlert).toHaveBeenCalledTimes(1);
+        expect(execute).toHaveBeenCalledTimes(1);
+        expect(notifyHedgingActivated).toHaveBeenCalledTimes(1);
+        expect(execute).toHaveBeenCalledWith(expect.objectContaining({
+          symbol: 'QQQ', action: 'STOP_LOSS_REQUEST', policy: 'FAST',
+        }));
+      } finally { service.onModuleDestroy(); }
+    },
+  );
   const sample = (price: number, eventTimeMs: number) => ({
     symbol: "QQQ",
     price,
