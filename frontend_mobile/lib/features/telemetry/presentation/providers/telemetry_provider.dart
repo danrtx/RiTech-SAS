@@ -7,22 +7,26 @@ class TelemetryState {
   final WebSocketStatus connectionStatus;
   final Map<String, Object?>? lastTick;
   final Map<String, Object?>? lastAtr;
+  final Map<String, Object?>? lastExecution;
   final String activeSymbol;
   const TelemetryState(
       {required this.connectionStatus,
       this.lastTick,
       this.lastAtr,
+      this.lastExecution,
       this.activeSymbol = AppConfig.marketSymbol});
   TelemetryState copyWith(
           {WebSocketStatus? connectionStatus,
           Map<String, Object?>? lastTick,
           Map<String, Object?>? lastAtr,
+          Map<String, Object?>? lastExecution,
           String? activeSymbol,
           bool clearData = false}) =>
       TelemetryState(
           connectionStatus: connectionStatus ?? this.connectionStatus,
           lastTick: clearData ? null : lastTick ?? this.lastTick,
           lastAtr: clearData ? null : lastAtr ?? this.lastAtr,
+          lastExecution: clearData ? null : lastExecution ?? this.lastExecution,
           activeSymbol: activeSymbol ?? this.activeSymbol);
 }
 
@@ -54,6 +58,12 @@ class TelemetryNotifier extends StateNotifier<TelemetryState> {
       }
     }));
     _wsClient.subscribeSymbol(state.activeSymbol);
+    _subscriptions.add(_wsClient.executionStream.listen((message) {
+      if (message['symbol'] == state.activeSymbol &&
+          message['correlationId'] != state.lastExecution?['correlationId']) {
+        state = state.copyWith(lastExecution: message);
+      }
+    }));
     _wsClient.connect();
   }
   void switchSymbol(String symbol) {

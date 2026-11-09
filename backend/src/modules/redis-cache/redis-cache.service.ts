@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
+import { datastoreTls } from '../../config/datastore-tls';
 import { AtrConfig } from "../atr/atr.config";
 import {
   AppendResult,
@@ -43,6 +44,7 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
       host,
       port,
       password: password || undefined,
+      tls: datastoreTls(key => this.configService.get<string>(key), 'REDIS'),
       commandTimeout: this.config.options.readTimeoutMs,
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,

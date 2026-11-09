@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/websocket_client.dart';
@@ -57,8 +58,15 @@ class _DashboardState extends ConsumerState<TelemetryDashboardScreen> {
     final tone = (snapshot?.change ?? 0) >= 0 ? chartUp : chartDown;
     return Scaffold(
         backgroundColor: const Color(0xFF0B111A),
+        floatingActionButton: FloatingActionButton(tooltip: 'Asistente de inversión', onPressed: () => context.push('/investment'), child: const Icon(Icons.psychology_outlined)),
         body: SafeArea(
             child: Column(children: [
+          if (telemetry.lastExecution != null)
+            MaterialBanner(
+              content: Text('${telemetry.lastExecution!['simulated'] == true ? 'SIMULACIÓN · ' : ''}'
+                  '${telemetry.lastExecution!['symbol']}: ${telemetry.lastExecution!['status']}'),
+              actions: const [Padding(padding: EdgeInsets.all(8), child: Text('Stop-loss'))],
+            ),
           Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: const BoxDecoration(

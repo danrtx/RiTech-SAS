@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-11-08T21:31:29.510Z",
+  "baseCommit": "dfcdf82deb4a1ead2d16e232b9a4ef602c8eb89c",
+  "scope": "Current working tree; local stop-loss, mock-broker E2E, paper integration, backtesting tooling, lint/build and static audit. No external broker or physical device certification.",
+  "steps": [
+    {
+      "name": "tests",
+      "exitCode": 0,
+      "error": null
+    },
+    {
+      "name": "lint",
+      "exitCode": 0,
+      "error": null
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "error": null
+    },
+    {
+      "name": "dataset-validation",
+      "exitCode": 0,
+      "error": null
+    },
+    {
+      "name": "backtest",
+      "exitCode": 0,
+      "error": null
+    },
+    {
+      "name": "security-static",
+      "exitCode": 0,
+      "error": null
+    }
+  ],
+  "toolsPassed": true,
+  "tests": {
+    "passed": 80,
+    "failed": 0,
+    "suites": 8
+  },
+  "securityVerdict": "NOT_APPROVED",
+  "historicalAcceptance": "NOT_DEMONSTRATED",
+  "maximumDrawdownPercent": -10.359281078561777
+}

@@ -1,0 +1,3020 @@
+{
+  "provenance": {
+    "source": "deterministic-stress-fixture",
+    "version": "1",
+    "synthetic": true
+  },
+  "samples": [
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955200000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955201000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955202000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955203000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955204000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955205000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955206000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955207000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955208000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955209000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955210000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955211000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955212000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955213000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955214000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955215000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955216000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955217000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955218000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955219000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955220000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955221000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955222000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955223000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955224000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955225000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955226000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955227000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955228000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955229000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955230000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955231000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955232000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955233000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955234000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955235000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955236000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955237000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955238000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955239000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955240000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955241000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955242000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955243000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955244000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955245000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955246000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955247000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955248000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955249000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955250000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955251000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955252000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955253000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955254000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955255000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955256000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955257000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955258000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955259000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955260000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955261000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955262000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955263000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955264000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955265000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955266000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955267000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955268000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955269000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955270000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955271000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955272000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955273000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955274000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955275000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955276000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955277000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955278000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955279000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955280000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955281000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955282000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955283000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955284000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955285000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955286000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955287000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955288000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955289000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955290000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955291000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955292000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955293000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955294000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955295000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955296000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955297000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955298000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955299000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955300000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955301000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955302000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955303000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955304000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955305000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955306000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955307000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955308000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955309000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955310000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955311000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955312000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955313000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955314000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955315000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955316000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955317000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955318000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955319000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955320000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955321000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955322000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955323000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955324000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955325000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955326000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955327000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955328000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955329000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955330000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955331000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955332000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955333000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955334000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955335000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955336000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955337000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955338000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955339000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955340000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955341000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955342000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955343000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955344000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955345000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955346000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955347000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955348000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955349000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955350000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955351000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955352000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955353000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955354000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955355000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955356000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955357000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955358000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955359000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955360000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955361000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955362000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955363000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955364000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955365000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955366000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955367000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955368000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955369000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955370000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955371000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955372000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955373000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955374000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955375000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955376000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955377000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955378000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955379000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955380000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955381000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955382000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955383000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955384000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955385000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955386000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955387000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955388000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955389000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955390000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955391000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955392000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955393000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955394000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955395000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955396000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955397000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955398000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955399000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955400000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955401000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955402000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955403000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955404000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955405000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955406000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955407000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955408000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955409000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955410000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955411000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955412000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955413000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955414000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955415000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955416000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955417000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955418000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955419000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955420000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955421000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955422000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955423000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955424000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955425000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955426000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955427000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955428000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955429000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955430000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955431000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955432000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955433000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955434000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955435000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955436000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955437000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955438000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955439000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955440000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955441000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955442000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955443000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955444000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955445000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955446000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955447000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955448000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955449000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955450000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955451000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955452000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955453000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955454000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955455000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955456000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955457000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955458000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955459000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955460000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955461000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955462000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955463000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955464000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955465000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955466000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955467000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955468000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955469000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955470000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955471000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955472000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955473000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955474000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955475000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955476000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955477000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955478000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955479000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955480000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955481000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955482000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955483000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955484000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955485000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955486000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955487000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955488000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955489000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955490000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955491000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955492000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955493000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955494000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955495000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955496000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955497000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955498000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955499000,
+      "price": 100
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955500000,
+      "price": 99
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955501000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955502000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955503000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955504000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955505000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955506000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955507000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955508000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955509000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955510000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955511000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955512000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955513000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955514000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955515000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955516000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955517000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955518000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955519000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955520000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955521000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955522000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955523000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955524000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955525000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955526000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955527000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955528000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955529000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955530000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955531000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955532000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955533000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955534000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955535000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955536000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955537000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955538000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955539000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955540000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955541000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955542000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955543000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955544000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955545000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955546000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955547000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955548000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955549000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955550000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955551000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955552000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955553000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955554000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955555000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955556000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955557000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955558000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955559000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955560000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955561000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955562000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955563000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955564000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955565000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955566000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955567000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955568000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955569000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955570000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955571000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955572000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955573000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955574000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955575000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955576000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955577000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955578000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955579000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955580000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955581000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955582000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955583000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955584000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955585000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955586000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955587000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955588000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955589000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955590000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955591000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955592000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955593000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955594000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955595000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955596000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955597000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955598000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955599000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955600000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955601000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955602000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955603000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955604000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955605000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955606000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955607000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955608000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955609000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955610000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955611000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955612000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955613000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955614000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955615000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955616000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955617000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955618000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955619000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955620000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955621000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955622000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955623000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955624000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955625000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955626000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955627000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955628000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955629000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955630000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955631000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955632000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955633000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955634000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955635000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955636000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955637000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955638000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955639000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955640000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955641000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955642000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955643000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955644000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955645000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955646000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955647000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955648000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955649000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955650000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955651000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955652000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955653000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955654000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955655000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955656000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955657000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955658000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955659000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955660000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955661000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955662000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955663000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955664000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955665000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955666000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955667000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955668000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955669000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955670000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955671000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955672000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955673000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955674000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955675000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955676000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955677000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955678000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955679000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955680000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955681000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955682000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955683000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955684000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955685000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955686000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955687000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955688000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955689000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955690000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955691000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955692000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955693000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955694000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955695000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955696000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955697000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955698000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955699000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955700000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955701000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955702000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955703000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955704000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955705000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955706000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955707000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955708000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955709000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955710000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955711000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955712000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955713000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955714000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955715000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955716000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955717000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955718000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955719000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955720000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955721000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955722000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955723000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955724000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955725000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955726000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955727000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955728000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955729000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955730000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955731000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955732000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955733000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955734000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955735000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955736000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955737000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955738000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955739000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955740000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955741000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955742000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955743000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955744000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955745000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955746000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955747000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955748000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955749000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955750000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955751000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955752000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955753000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955754000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955755000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955756000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955757000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955758000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955759000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955760000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955761000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955762000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955763000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955764000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955765000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955766000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955767000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955768000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955769000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955770000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955771000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955772000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955773000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955774000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955775000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955776000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955777000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955778000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955779000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955780000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955781000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955782000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955783000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955784000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955785000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955786000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955787000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955788000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955789000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955790000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955791000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955792000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955793000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955794000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955795000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955796000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955797000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955798000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955799000,
+      "price": 90
+    },
+    {
+      "symbol": "NDX",
+      "eventTimeMs": 1761955800000,
+      "price": 90
+    }
+  ],
+  "config": {
+    "costBps": 10,
+    "slippageBps": 10,
+    "initialCapital": 10000,
+    "maxGapMs": 2000
+  }
+}
