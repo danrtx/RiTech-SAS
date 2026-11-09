@@ -9,7 +9,7 @@ const executable = (pkg, file) => path.join(path.dirname(require.resolve(`${pkg}
 const dataset = path.resolve(backend, '../reportes/sprint-4/synthetic-stress.json');
 const steps = [
   ['tests', [require.resolve('jest/bin/jest'), '--runInBand', '--cacheDirectory=.cache/jest', '--json',
-    `--outputFile=${path.join(output, 'tests.json')}`, 'dynamic-stop-loss', 'hedging-flow.e2e', 'paper-execution', 'hedging-integration', 'backtesting']],
+    `--outputFile=${path.join(output, 'tests.json')}`, 'dynamic-stop-loss', 'hedging-flow.e2e', 'paper-execution', 'hedging-integration', 'backtesting', 'datastore-tls', 'market-data-ws.client']],
   ['lint', [executable('eslint', 'bin/eslint.js'), '{src,test}/**/*.ts']],
   ['build', [executable('@nestjs/cli', 'bin/nest.js'), 'build']],
   ['dataset-validation', [executable('ts-node', 'dist/bin.js'), 'scripts/backtest.ts', '--validate-only', dataset, path.join(output, 'dataset-validation.json')]],

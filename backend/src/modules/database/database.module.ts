@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MarketChartArchive1791345600000 } from "./migrations/1791345600000-MarketChartArchive";
+import { datastoreTls } from '../../config/datastore-tls';
 
 import { BrokerOrders1794153600000 } from "./migrations/1794153600000-BrokerOrders";
 
@@ -19,6 +20,7 @@ import { InvestmentRecommendations1794186000000 } from "./migrations/17941860000
         username: configService.get<string>("DB_USER"),
         password: configService.get<string>("DB_PASS"),
         database: configService.get<string>("DB_NAME"),
+        ssl: datastoreTls(key => configService.get<string>(key), 'DB'),
         autoLoadEntities: true,
         synchronize: false,
         migrations: [
