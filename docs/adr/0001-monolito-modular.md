@@ -1,8 +1,8 @@
 # ADR 0001: monolito modular NestJS en lugar de microservicios
 
 - **Estado:** propuesto (pendiente de aprobación del equipo)
-- **Fecha:** 2026-11-04
-- **Responsable:** Tech Lead / DevOps
+- **Fecha:** 2026-11-04 · revisado el 2026-11-09 tras el sprint 4
+- **Responsable:** Danilo Montezuma (DevOps y QA)
 - **Tarea:** [Documentar arquitectura y operaciones con ADR](https://app.clickup.com/t/86e390ze7)
 
 ## Contexto
@@ -48,7 +48,7 @@ Las reglas que hacen extraíble a un módulo:
 
 **Positivas**
 
-- La latencia medida ingesta → motor con Redis real queda en p50 7,2 ms, p95 23,2 ms y máximo 108 ms a 200 ticks/s ([evidencia](../../reportes/latencia/)), dentro del presupuesto.
+- La latencia medida ingesta → motor con Redis real queda en p50 7,2 ms, p95 23,2 ms y máximo 108 ms a 200 ticks/s en un equipo de desarrollo ([evidencia](../../reportes/latencia/)), y en p50 0,76 ms, p95 1,46 ms y máximo 12,06 ms en el CI del 9 de noviembre: dentro del presupuesto.
 - Hay un solo artefacto que construir, versionar y desplegar, y el rollback consiste en volver a la imagen anterior.
 - Las pruebas E2E recorren el camino real en un proceso (`hedging-flow.e2e.spec.ts`, `latency-benchmark.spec.ts`).
 
@@ -63,5 +63,20 @@ Las reglas que hacen extraíble a un módulo:
 - Más de un símbolo con requisitos de latencia independientes, o una carga sostenida mayor a 2.000 ticks/s.
 - Un p95 del tramo `total` por encima de 100 ms en producción durante una semana.
 - Requisitos regulatorios que obliguen a aislar la ejecución de órdenes (conector FIX) del resto del sistema.
+
+## Revisión del 9 de noviembre de 2026 (cierre del sprint 4)
+
+La decisión se mantiene. En el sprint 4 entraron cuatro módulos nuevos sin cambiar el núcleo, que es lo que el diseño modular buscaba:
+
+| Módulo nuevo | Cómo respeta las reglas de la decisión |
+| --- | --- |
+| `broker` (órdenes IOC a IBKR paper) | Fuera del camino crítico: el stop-loss no lo llama de forma automática y cada orden queda en PostgreSQL con clave única antes de enviarse |
+| `hedging/PaperExecutionService` | Llamado desde el stop-loss dentro de su propio `try/catch`; un fallo no afecta las alertas ni el motor |
+| `investment` (agente con Gemini) | Consulta bajo demanda desde la app, nunca dentro de la ingesta; sin acceso al bróker |
+| `backtesting` | Reutiliza `DynamicStopLoss` tal cual, sin una copia del motor |
+
+El conector del bróker, que el contexto original mencionaba como trabajo pendiente, ya existe como módulo y podría extraerse a un servicio aparte si una norma lo exigiera (tercer criterio de revisión). Ninguno de los criterios de revisión se cumplió en este sprint.
+
+Los tres destinos de despliegue (Docker Compose, Azure Container Apps y AWS en el PR #33) corren **una sola réplica**, como exige la segunda consecuencia negativa. El runbook registra que el despliegue en Azure permite apagar la réplica sin tráfico (`--min-replicas 0`), lo que no duplica decisiones pero sí interrumpe la ingesta en vivo.
 
 Diagramas y detalle operativo: [arquitectura](../arquitectura.md) · [runbook](../runbook.md).
