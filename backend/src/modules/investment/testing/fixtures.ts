@@ -1,0 +1,55 @@
+import { Analysis, EvaluationInput } from "../investment.types";
+export function fixture(now = Date.now()): EvaluationInput {
+  return {
+    quantity: 2,
+    contextVersion: 1,
+    context: {
+      asOf: now - 1000,
+      source: "TEST_ONLY",
+      cash: 10000,
+      otherExposure: 100,
+      position: { quantity: 5, averageEntry: 90 },
+      maxExposure: 20000,
+      maxInstrumentExposure: 15000,
+      maxTradeRisk: 1000,
+      stopLoss: 95,
+      horizon: "INTRADIA",
+      allowedHorizons: ["INTRADIA"],
+      tolerance: "MEDIA",
+      maxAtrPercent: 2,
+      hedgeRequired: true,
+      hedgeActive: true,
+      tradingEnabled: true,
+      instrumentEnabled: true,
+    },
+    market: {
+      symbol: "QQQ",
+      provider: "twelvedata",
+      simulated: false,
+      live: true,
+      price: 100,
+      quotedAt: now - 100,
+      volume: null,
+      referencePrice: 99,
+      referenceAt: now - 10100,
+      change: 1,
+      changePercent: 100 / 99,
+      atr: 0.5,
+      atrAt: now - 60000,
+      atrStatus: "ready",
+      volatility: "MEDIA",
+      session: "REGULAR_WINDOW",
+    },
+  };
+}
+export const analysis: Analysis = {
+  decision: "COMPRAR",
+  justification:
+    "El contexto suministrado muestra una variación positiva, sujeta a riesgo.",
+  risks: ["La volatilidad puede aumentar."],
+  favorable: "Si persiste la tendencia, el escenario es favorable.",
+  adverse: "Una caída puede invalidar el análisis.",
+  invalidation: ["Pérdida de vigencia de los datos."],
+  uncertainty: "ALTA",
+  limitations: ["No hay garantía de rendimiento."],
+};
