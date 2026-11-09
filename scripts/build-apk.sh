@@ -30,7 +30,7 @@ echo "==> Obteniendo dependencias..."
 flutter pub get
 
 echo "==> Construyendo APK release firmado..."
-flutter build apk --release
+flutter build apk --release --android-skip-build-dependency-validation
 
 APK_PATH="$MOBILE_DIR/build/app/outputs/flutter-apk/app-release.apk"
 
