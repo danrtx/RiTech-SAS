@@ -20,7 +20,7 @@ class MarketDataRepository {
   Future<List<Map<String, dynamic>>> getHistory({int limit = 500}) => _api.get(
         '/market-data/history',
         queryParameters: {'limit': limit},
-        fromJson: (json) => (json as List<dynamic>)
+        fromJson: (json) => ((json as Map<String, dynamic>)['samples'] as List<dynamic>)
             .map((e) => e as Map<String, dynamic>)
             .toList(),
       );

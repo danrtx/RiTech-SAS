@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { UserEntity, AssetEntity, PositionEntity, OrderEntity, HedgeRuleEntity, HedgeLogEntity } from './entities';
+import { PortfolioEntities1794204000000 } from './migrations/1794204000000-PortfolioEntities';
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MarketChartArchive1791345600000 } from "./migrations/1791345600000-MarketChartArchive";
@@ -22,8 +24,10 @@ import { InvestmentRecommendations1794186000000 } from "./migrations/17941860000
         database: configService.get<string>("DB_NAME"),
         ssl: datastoreTls(key => configService.get<string>(key), 'DB'),
         autoLoadEntities: true,
+        entities: [UserEntity, AssetEntity, PositionEntity, OrderEntity, HedgeRuleEntity, HedgeLogEntity],
         synchronize: false,
         migrations: [
+          PortfolioEntities1794204000000,
           MarketChartArchive1791345600000,
           BrokerOrders1794153600000,
           InvestmentRecommendations1794186000000,

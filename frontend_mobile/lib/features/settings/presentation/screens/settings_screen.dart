@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../market_data/presentation/providers/market_data_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final market = ref.watch(marketDataProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Configuración'),
@@ -16,6 +18,12 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          FilledButton(
+            onPressed: market.loading ? null : () => ref.read(marketDataProvider.notifier).refresh(force: true),
+            child: Text(market.loading ? 'Comprobando conexión…' : 'Comprobar conexión'),
+          ),
+          if (market.error != null) Text(market.error!),
+          if (market.health != null) Text('Servicios: ${market.health!.isOk ? "disponibles" : "no disponibles"}'),
           _section('Conexión', [
             _tile(
               icon: Icons.dns_outlined,
