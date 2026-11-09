@@ -5,6 +5,8 @@ import { MarketChartArchive1791345600000 } from "./migrations/1791345600000-Mark
 
 import { BrokerOrders1794153600000 } from "./migrations/1794153600000-BrokerOrders";
 
+import { InvestmentRecommendations1794186000000 } from "./migrations/1794186000000-InvestmentRecommendations";
+
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
@@ -22,6 +24,7 @@ import { BrokerOrders1794153600000 } from "./migrations/1794153600000-BrokerOrde
         migrations: [
           MarketChartArchive1791345600000,
           BrokerOrders1794153600000,
+          InvestmentRecommendations1794186000000,
         ],
         migrationsRun: true,
         logging: configService.get<string>("NODE_ENV") === "development",

@@ -12,6 +12,8 @@ import { MarketChartModule } from './modules/market-chart/market-chart.module';
 
 import { BrokerModule } from './modules/broker/broker.module';
 
+import { InvestmentModule } from './modules/investment/investment.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -22,6 +24,7 @@ import { BrokerModule } from './modules/broker/broker.module';
     }),
     DatabaseModule,
     BrokerModule,
+    InvestmentModule,
     RedisCacheModule,
     TelemetryModule,
     MarketDataModule,
