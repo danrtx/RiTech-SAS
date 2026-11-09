@@ -1,0 +1,53 @@
+#!/bin/sh
+# Pre-commit hook: valida linter y formato antes de cada commit.
+# Instalar: git config core.hooksPath .githooks
+
+set -e
+
+echo "=== Pre-commit: validando código ==="
+
+# Backend: lint
+if git diff --cached --name-only | grep -q '^backend/'; then
+  if command -v npm >/dev/null 2>&1; then
+    echo "[backend] Ejecutando ESLint..."
+    cd backend
+    npm run lint
+    cd ..
+    echo "[backend] ESLint OK"
+  else
+    echo "[backend] npm no encontrado, saltando ESLint"
+  fi
+fi
+
+# Flutter: analyze
+if git diff --cached --name-only | grep -q '^frontend_mobile/'; then
+  if command -v flutter >/dev/null 2>&1; then
+    echo "[flutter] Ejecutando flutter analyze..."
+    cd frontend_mobile
+    flutter analyze --no-fatal-infos
+    cd ..
+    echo "[flutter] Análisis OK"
+  else
+    echo "[flutter] flutter no encontrado, saltando análisis"
+  fi
+fi
+
+# Paquetes ATR: analyze + format
+if git diff --cached --name-only | grep -q '^packages/'; then
+  if command -v dart >/dev/null 2>&1; then
+    for pkg in packages/atr_engine packages/atr_engine_flutter; do
+      if [ -d "$pkg" ] && git diff --cached --name-only | grep -q "^$pkg/"; then
+        echo "[$pkg] Ejecutando análisis y formato..."
+        cd "$pkg"
+        dart analyze
+        dart format --output=none --set-exit-if-changed .
+        cd ../..
+        echo "[$pkg] OK"
+      fi
+    done
+  else
+    echo "[packages] dart no encontrado, saltando análisis ATR"
+  fi
+fi
+
+echo "=== Pre-commit: todas las validaciones pasaron ==="
