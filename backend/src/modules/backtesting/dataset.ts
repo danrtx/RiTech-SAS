@@ -3,7 +3,12 @@ import { BacktestConfig } from "./backtest";
 import { StopLossSample } from "../hedging/dynamic-stop-loss";
 
 export interface BacktestDataset {
-  provenance: { source: string; version: string; synthetic: boolean };
+  provenance: {
+    source: string;
+    version: string;
+    synthetic: boolean;
+    excludedInvalidBars?: number;
+  };
   config: BacktestConfig;
   samples: StopLossSample[];
 }
@@ -29,6 +34,12 @@ export function parseDataset(raw: string): BacktestDataset {
   }
   if (typeof provenance.synthetic !== "boolean")
     throw new Error("provenance.synthetic must be boolean");
+  if (
+    provenance.excludedInvalidBars !== undefined &&
+    (!Number.isSafeInteger(provenance.excludedInvalidBars) ||
+      Number(provenance.excludedInvalidBars) < 0)
+  )
+    throw new Error("Invalid provenance.excludedInvalidBars");
   const config = value.config;
   if (!object(config)) throw new Error("Dataset requires config");
   for (const field of [
@@ -113,8 +124,10 @@ export function inspectDataset(raw: string) {
   const symbol = samples[0].symbol;
   const blockers: string[] = [];
   if (provenance.synthetic) blockers.push("SYNTHETIC_DATA");
+  if (provenance.excludedInvalidBars)
+    blockers.push("PROVIDER_OHLC_INCONSISTENCIES");
   if (!spans24Months) blockers.push("LESS_THAN_24_MONTHS");
-  if (symbol.toUpperCase() !== "NDX")
+  if (!["NDX", "QQQ"].includes(symbol.toUpperCase()))
     blockers.push("INSTRUMENT_REQUIRES_APPROVAL");
   if (minIntervalMs >= 86400000) blockers.push("NO_INTRADAY_OBSERVATIONS");
   return {
@@ -129,7 +142,8 @@ export function inspectDataset(raw: string) {
       from: new Date(from).toISOString(),
       to: new Date(to).toISOString(),
       spans24Months,
-      instrument: symbol.toUpperCase() === "QQQ" ? "QQQ_PROXY_NOT_NDX" : symbol,
+      instrument:
+        symbol.toUpperCase() === "QQQ" ? "QQQ_ETF_NOT_NDX_INDEX" : symbol,
       minIntervalMs,
       maxIntervalMs,
       discontinuities,

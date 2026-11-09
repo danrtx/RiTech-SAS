@@ -10,6 +10,21 @@ const data = () => ({
 });
 
 describe("historical dataset reception", () => {
+  it("retains provider quality blockers when the cleaned dataset is replayed offline", () => {
+    const value = data();
+    const provenance = { ...value.provenance, excludedInvalidBars: 15 };
+    expect(
+      inspectDataset(JSON.stringify({ ...value, provenance })).report.blockers,
+    ).toContain("PROVIDER_OHLC_INCONSISTENCIES");
+    expect(() =>
+      parseDataset(
+        JSON.stringify({
+          ...value,
+          provenance: { ...provenance, excludedInvalidBars: -1 },
+        }),
+      ),
+    ).toThrow();
+  });
   it.each([
     null,
     [],
@@ -75,7 +90,7 @@ describe("historical dataset reception", () => {
     expect(report.discontinuities).toBe(1);
     expect(report.gapExamples).toHaveLength(1);
   });
-  it("labels QQQ as proxy and bounds the gap evidence", () => {
+  it("accepts the selected QQQ instrument without certifying coverage", () => {
     const value = data();
     value.samples = Array.from({ length: 30 }, (_, i) => ({
       symbol: "QQQ",
@@ -83,8 +98,9 @@ describe("historical dataset reception", () => {
       eventTimeMs: i * 5000,
     }));
     const { report } = inspectDataset(JSON.stringify(value));
-    expect(report.instrument).toBe("QQQ_PROXY_NOT_NDX");
-    expect(report.blockers).toContain("INSTRUMENT_REQUIRES_APPROVAL");
+    expect(report.instrument).toBe("QQQ_ETF_NOT_NDX_INDEX");
+    expect(report.blockers).not.toContain("INSTRUMENT_REQUIRES_APPROVAL");
+    expect(report.blockers).toContain("LESS_THAN_24_MONTHS");
     expect(report.discontinuities).toBe(29);
     expect(report.gapExamples).toHaveLength(20);
   });
