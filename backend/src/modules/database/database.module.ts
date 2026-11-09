@@ -4,6 +4,10 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MarketChartArchive1791345600000 } from "./migrations/1791345600000-MarketChartArchive";
 import { datastoreTls } from '../../config/datastore-tls';
 
+import { BrokerOrders1794153600000 } from "./migrations/1794153600000-BrokerOrders";
+
+import { InvestmentRecommendations1794186000000 } from "./migrations/1794186000000-InvestmentRecommendations";
+
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
@@ -19,7 +23,11 @@ import { datastoreTls } from '../../config/datastore-tls';
         ssl: datastoreTls(key => configService.get<string>(key), 'DB'),
         autoLoadEntities: true,
         synchronize: false,
-        migrations: [MarketChartArchive1791345600000],
+        migrations: [
+          MarketChartArchive1791345600000,
+          BrokerOrders1794153600000,
+          InvestmentRecommendations1794186000000,
+        ],
         migrationsRun: true,
         logging: configService.get<string>("NODE_ENV") === "development",
       }),
