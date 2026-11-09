@@ -18,6 +18,7 @@
     "test:watch": "jest --watch",
     "test:sprints23": "jest --runInBand --cacheDirectory=.cache/jest dynamic-stop-loss hedging-flow.e2e",
     "backtest": "ts-node scripts/backtest.ts",
+    "backtest:qqq": "node --tls-min-v1.3 --env-file=../.env -r ts-node/register scripts/backtest-qqq.ts",
     "backtest:validate": "ts-node scripts/backtest.ts --validate-only",
     "qa:diego": "node scripts/verify-diego.cjs",
     "audit:security": "node scripts/audit-security.cjs",
