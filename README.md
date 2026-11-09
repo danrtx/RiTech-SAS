@@ -189,3 +189,4 @@ Las pruebas del backend van junto al código con el sufijo `.spec.ts` (por ejemp
 - [ADR 0001: monolito modular](docs/adr/0001-monolito-modular.md)
 - [Arquitectura implementada (diagramas)](docs/arquitectura.md)
 - [Runbook: despliegue, rollback, observabilidad, recuperación, push FCM e incidentes](docs/runbook.md)
+- [Acta de Definition of Done del sprint 4](docs/ACTA_DOD_SPRINT4.md)

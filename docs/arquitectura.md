@@ -1,6 +1,6 @@
 # Arquitectura implementada
 
-Este documento describe el código de `main` al 4 de noviembre de 2026. La decisión de fondo está en el [ADR 0001](adr/0001-monolito-modular.md) y la operación, en el [runbook](runbook.md).
+Este documento describe el código de `main` al 9 de noviembre de 2026 (commit `c60a1ab`, cierre del sprint 4). La decisión de fondo está en el [ADR 0001](adr/0001-monolito-modular.md) y la operación, en el [runbook](runbook.md).
 
 ## Contexto
 
@@ -10,14 +10,15 @@ flowchart LR
     TD[Twelve Data WS<br/>QQQ realtime]
     AP[Alpaca WS<br/>opcional / pruebas]
   end
-  subgraph Backend["Backend NestJS (un proceso)"]
+  subgraph Backend["Backend NestJS (un proceso, una réplica)"]
     BE[Monolito modular]
   end
-  PG[(PostgreSQL 16<br/>velas y observaciones)]
+  PG[(PostgreSQL 16<br/>velas, órdenes, recomendaciones)]
   RD[(Redis 7<br/>ticks y ventana ATR)]
   FCM[Firebase Cloud Messaging]
+  GEM[Google Gemini<br/>análisis de inversión]
+  IBKR[IBKR Client Portal<br/>cuenta paper]
   APP[App Flutter<br/>Android / iOS / Web]
-  BRK[Bróker FIX/API<br/>pendiente: hoy mock HTTP]
 
   TD -->|precios| BE
   AP -.->|trades| BE
@@ -26,10 +27,29 @@ flowchart LR
   BE -->|Socket.IO /telemetry| APP
   BE -->|HTTP REST| APP
   BE -->|push por tópico| FCM --> APP
-  BE -.->|solicitud stop-loss| BRK
+  BE -->|consulta bajo demanda| GEM
+  BE -.->|órdenes IOC, solo ibkr-paper| IBKR
 ```
 
+Las líneas punteadas son integraciones opcionales que dependen de la configuración del ambiente. Con TLS habilitado, el backend acepta solo HTTPS con TLS 1.3 y exige TLS verificado hacia PostgreSQL y Redis.
+
 ## Módulos del backend
+
+| Módulo | Responsabilidad | Autor principal |
+| --- | --- | --- |
+| `market-data` | Adaptadores Twelve Data y Alpaca, cola acotada, deduplicación, recuperación tras cortes | Dylan |
+| `atr` | ATR de 1 minuto y alerta de volatilidad | Diego |
+| `market-chart` | Archivo de precios y velas por jornada en PostgreSQL | Dylan |
+| `hedging` | Stop-loss dinámico, ejecución simulada (paper), medición de latencia NFR-001 | Diego y Danilo |
+| `notifications` | Cola y envío de alertas push por FCM, registro de dispositivos | Danilo |
+| `broker` | Órdenes IOC a IBKR paper con reintentos limitados y auditoría | Dylan |
+| `investment` | Agente de análisis con Gemini, controles de riesgo y auditoría de recomendaciones | Diego y Dylan |
+| `backtesting` | Motor de backtesting reproducible con dataset versionado | Diego |
+| `telemetry` | Gateway Socket.IO `/telemetry` hacia la app | Juan José, extendido por Diego y Dylan |
+| `database` | Entidades de cartera y migraciones | Juan José y equipo |
+| `redis-cache`, `health` | Caché de ticks y verificación de salud | Equipo |
+
+El despliegue (Dockerfile, `docker-compose.prod.yml`, scripts de despliegue y Azure) es de Juan José; TLS 1.3 de entrada y hacia los almacenes de datos, de Diego.
 
 ```mermaid
 flowchart TB
@@ -37,32 +57,41 @@ flowchart TB
     AD[Adaptadores<br/>TwelveData / Alpaca] --> PR[MarketDataProcessor<br/>cola, dedup, orden]
     PR -->|TickConsumer| CO[MarketAtrConsumer]
     CO --> PA[PriceAnalysisService]
-    RC[MarketRecoveryService]
   end
   subgraph hedging
-    SL[StopLossService<br/>cola 4096, lotes 128] --> DS[DynamicStopLoss]
+    SL[StopLossService] --> DS[DynamicStopLoss]
+    SL --> PE[PaperExecutionService<br/>EXECUTION_MODE=paper]
     LT[PipelineLatencyService<br/>GET /hedging/latency]
-    IA[InvestmentAnalysisService]
   end
   subgraph notifications
     PN[PushNotificationService<br/>cola 256, timeout 5 s] --> PS{{PushSender<br/>FCM / deshabilitado}}
   end
-  subgraph telemetry
-    GW[TelemetryGateway<br/>Socket.IO]
+  subgraph broker
+    IOC[IocExecutionService] --> IB[IbkrClient]
   end
-  ATR[atr] ; CH[market-chart] ; RCM[redis-cache] ; DB[database] ; HL[health]
+  subgraph investment
+    IS[InvestmentService] --> GC[GeminiClient]
+    IS --> RK[Controles de riesgo<br/>deterministas]
+  end
+  GW[TelemetryGateway<br/>Socket.IO]
+  ATR[atr] ; CH[market-chart] ; RCM[redis-cache] ; DB[database]
 
   CO --> RCM
   CO --> ATR
-  CO --> SL
-  PA --> IA
-  PA --> GW
+  CO -->|tick + traza| SL
   SL --> LT
   SL -->|hedging_alert| GW
+  PE -->|execution_notification| GW
   SL -->|encola| PN
+  PA --> GW
+  IS --> PA
+  IS --> ATR
+  IS --> DB
+  IOC --> DB
   CH --> DB
-  HL --> DB & RCM
 ```
+
+El stop-loss no llama al bróker IBKR de forma automática: la señal no trae contrato, tamaño ni lado de cobertura, así que `IocExecutionService` se usa solo con datos explícitos (comando `npm run broker:ioc`). El agente de inversión tampoco tiene acceso al bróker.
 
 ## Camino crítico: tick → decisión → alerta
 
@@ -75,6 +104,7 @@ sequenceDiagram
   participant RD as Redis
   participant SL as StopLossService
   participant DS as DynamicStopLoss
+  participant PE as PaperExecutionService
   participant GW as TelemetryGateway
   participant PN as PushNotificationService
   participant FCM as FCM
@@ -90,57 +120,76 @@ sequenceDiagram
   SL->>DS: accept(sample) → fin de la medición NFR-001
   DS-->>SL: StopLossTrigger (si hay caída)
   SL->>GW: hedging_alert (Socket.IO)
+  SL->>PE: execute(trigger), solo con EXECUTION_MODE=paper
   SL->>PN: notifyHedgingActivated (síncrono, sin await)
   PN-->>FCM: send(topic, data v1) en segundo plano
 ```
 
-`/hedging/latency` reporta p50, p95 y máximo por tramo, además del `slowestSegment`. El reporte reproducible se genera con `npm run qa:latency -- --redis` y queda en `reportes/latencia/`.
+Cada salida del stop-loss está envuelta en su propio `try/catch`: una falla en Socket.IO, en la ejecución simulada o en push no impide las demás ni detiene el motor. La latencia medida en el CI del 9 de noviembre (200 ticks/s, Redis real) fue p50 0,76 ms, p95 1,46 ms y máximo 12,06 ms.
 
 ## Contratos versionados
 
 | Canal | Evento / ruta | Versión | Productor → consumidor |
 | --- | --- | --- | --- |
 | Socket.IO `/telemetry` | `telemetry_tick`, `atr_result`, `chart_candle`, `price_alert`, `investment_update`, `market_data_quality` | `schemaVersion` en el tick | Backend → app |
-| Socket.IO `/telemetry` | `hedging_alert` (`action: STOP_LOSS_REQUEST`, `executionStatus: REQUESTED`) | `schemaVersion: 1` | Backend → app |
+| Socket.IO `/telemetry` | `hedging_alert` (`action: STOP_LOSS_REQUEST`) | `schemaVersion: 1` | Backend → app |
+| Socket.IO `/telemetry` | `execution_notification` (aceptación simulada) | `schemaVersion: 1`, `simulated: true` | Backend → app |
 | FCM `data` | `type: HEDGING_ACTIVATED`, `correlationId`, `symbol`, `policy`, `price`, `fallPercentPerMinute`, `triggeredAtMs`, `route` | `schemaVersion: "1"` | Backend → app |
+| HTTP | `POST/GET /api/investment/recommendations`, decisión humana | `Idempotency-Key` obligatorio | App → backend |
 | HTTP | `POST/DELETE /notifications/devices`, `GET /notifications/status` | n/a | App → backend |
-| HTTP | `GET /hedging/latency`, `GET /health`, `GET /market-data/status`, `/market-data/*`, `/atr` | n/a | Operación / app |
+| HTTP | `GET /hedging/latency`, `GET /health`, `/market-data/*`, `/atr` | n/a | Operación / app |
 
-La app Flutter **descarta** los payloads push con otra versión o con campos inválidos. La ruta de navegación se reconstruye en el cliente a partir de `correlationId` y nunca se toma del campo `route` del payload.
+## Datos persistidos (PostgreSQL)
+
+| Migración | Tablas | Uso |
+| --- | --- | --- |
+| `1791345600000-MarketChartArchive` | `market_chart_observations`, `market_chart_candles` | Historial de precios y velas por jornada |
+| `1794153600000-BrokerOrders` | órdenes y `broker_order_events` | Idempotencia y auditoría de órdenes IOC |
+| `1794186000000-InvestmentRecommendations` | recomendaciones y auditoría | Resultado validado, versiones, consulta y decisión humana |
+| `1794204000000-PortfolioEntities` | `users`, `assets`, `positions`, `orders`, `hedge_rules`, `hedge_logs` | Modelo de cartera |
+
+TypeORM aplica las migraciones al arrancar; `synchronize` está desactivado.
 
 ## App móvil
 
 ```mermaid
 flowchart LR
-  main[main.dart<br/>FirebaseBootstrap] --> app[RiTechApp<br/>router + aviso en app]
-  app --> router[GoRouter<br/>/dashboard · /hedging · /orders/:id]
+  main[main.dart<br/>FirebaseBootstrap] --> app[RiTechApp<br/>router + aviso de alerta]
+  app --> router[GoRouter]
+  router --> dash["/dashboard: telemetría y gráfica"]
+  router --> mon["/monitoring: métricas y rentabilidad"]
+  router --> inv["/investment: agente de análisis"]
+  router --> alerts["/alerts y /settings"]
+  router --> detail["/orders/:correlationId: detalle de la orden"]
   app --> pc[PushNotificationsController]
-  pc --> mc[PushMessagingClient<br/>firebase_messaging]
-  pc --> reg[DeviceRegistrationApi<br/>POST /notifications/devices]
-  pc --> ln[LocalAlertNotifier<br/>canal hedging_alerts]
-  router --> detail[OrderDetailScreen]
-  router --> dash[TelemetryDashboardScreen<br/>Socket.IO + gráfica]
+  pc --> mc[firebase_messaging]
+  pc --> reg[POST /notifications/devices]
 ```
 
 | Estado de la app | Quién muestra la alerta | Cómo se abre el detalle |
 | --- | --- | --- |
-| Foreground | Notificación local, más un aviso con el botón «Ver» | Toque → `openAlert` → `/orders/:id` |
+| Foreground | Notificación local, más un aviso con el botón «Ver» (15 s) | Toque → `openAlert` → `/orders/:id` |
 | Background | El sistema operativo (bloque `notification` de FCM) | `onMessageOpenedApp` |
-| Terminada | El sistema operativo | `getInitialMessage`, que queda pendiente hasta el primer frame |
+| Terminada | El sistema operativo | `getInitialMessage`, pendiente hasta el primer frame |
 
-## Despliegue actual
+Verificado en emulador Android API 36 el 7 de noviembre de 2026. iOS está configurado pero sin verificar en dispositivo (excepción acordada: requiere Mac y cuenta de Apple Developer).
+
+## Despliegue
 
 ```mermaid
 flowchart LR
-  dev[Equipo] -->|PR| gh[GitHub Actions<br/>lint · tests · cobertura · NFR-001 · DoD · Sonar]
-  gh -->|merge main| main[(main)]
-  subgraph Local["Máquina de desarrollo (docker compose)"]
-    pg[(ritech-postgres :5433)]
-    rd[(ritech-redis :6379)]
-    node[node dist/main :3000]
-  end
-  main -->|npm run build| node
-  node --> pg & rd
+  dev[Equipo] -->|PR| gh[GitHub Actions<br/>lint · tests · cobertura · TLS · NFR-001 · DoD]
+  gh -->|merge| main[(main)]
+  main --> img[Imagen Docker<br/>node:20-alpine, usuario sin privilegios]
+  img --> local[docker-compose.prod.yml<br/>scripts/deploy.sh · rollback.sh]
+  img --> az[Azure Container Apps<br/>scripts/azure-deploy.sh]
+  img -.-> aws[AWS EC2 + HTTPS<br/>PR #33, en revisión]
 ```
 
-La contenerización y el despliegue a producción siguen pendientes ([Contenerizar y desplegar a producción](https://app.clickup.com/t/86e390ze5)). Cuando existan, este diagrama y el runbook deben actualizarse con el destino real.
+| Destino | Estado en `main` | Detalles |
+| --- | --- | --- |
+| Servidor con Docker Compose | Implementado | `docker-compose.prod.yml` con PostgreSQL, Redis y backend; health check de 15 s; `deploy.sh` guarda la etiqueta anterior y `rollback.sh` la restaura |
+| Azure Container Apps | Script implementado | PostgreSQL Flexible Server, Redis externo (Upstash), 0 a 1 réplicas, ingreso HTTPS; datos de mercado y FCM deshabilitados por defecto |
+| AWS EC2 | PR #33 abierto | HTTPS con TLS 1.3, Secrets Manager, Flutter web público; instancia única, sin respaldos automáticos |
+
+En todos los casos corre **una sola réplica** del backend, como exige el ADR 0001: el estado del episodio de stop-loss vive en memoria.
