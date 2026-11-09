@@ -3,12 +3,14 @@ import { PriceAnalysisService } from "../market-data/analysis/price-analysis.ser
 import { AtrService } from "../atr/atr.service";
 import { MarketSnapshot } from "./investment.types";
 import { regularWindow } from "./investment.risk";
+import { InvestmentHistoryAtr } from "./investment-history-atr";
 
 @Injectable()
 export class InvestmentMarket {
   constructor(
     private readonly prices: PriceAnalysisService,
     private readonly atr: AtrService,
+    private readonly historical: InvestmentHistoryAtr,
   ) {}
   snapshot(): MarketSnapshot {
     const history = this.prices.getHistory(1000);
@@ -18,9 +20,18 @@ export class InvestmentMarket {
       [...history.samples]
         .reverse()
         .find((s) => s.eventTimeMs <= last.eventTimeMs - 10000);
-    const indicator = this.atr
+    const liveIndicator = this.atr
       .snapshot()
       .results.find((r) => r.symbol === "QQQ");
+    const seed =
+      history.marketReference.provider === "twelvedata" &&
+      !history.marketReference.simulated
+        ? this.historical.snapshot()
+        : undefined;
+    const useHistory =
+      seed?.status === "ready" &&
+      (liveIndicator?.status !== "ready" || seed.minute > liveIndicator.minute);
+    const indicator = useHistory ? seed : liveIndicator;
     const atr = indicator?.atr ?? null;
     const percent = last && atr !== null ? (atr / last.price) * 100 : null;
     return {
@@ -39,6 +50,7 @@ export class InvestmentMarket {
       atr,
       atrAt: indicator?.minute ?? null,
       atrStatus: indicator?.status || "insufficientData",
+      atrSource: useHistory ? "provider_ohlc" : "live_ticks",
       volatility:
         percent === null
           ? "DESCONOCIDA"

@@ -196,6 +196,16 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                                 text('Variación de la ventana (%)',
                                     indicators['changePercent']),
                                 text('ATR de minutos', indicators['atr']),
+                                text(
+                                    'Origen del ATR',
+                                    indicators['atr'] == null
+                                        ? 'No disponible'
+                                        : indicators['atrSource'] ==
+                                                'provider_ohlc'
+                                            ? 'Velas históricas del proveedor'
+                                            : 'Cotizaciones en vivo'),
+                                text('Fecha de la vela ATR',
+                                    time(indicators['atrAt'])),
                                 text('Volatilidad', indicators['volatility']),
                                 list('Riesgos', r['risks']),
                                 text('Escenario favorable', r['favorable']),

@@ -1,6 +1,8 @@
 import { InvestmentMarket } from "./investment.market";
 import { PriceAnalysisService } from "../market-data/analysis/price-analysis.service";
 import { AtrService } from "../atr/atr.service";
+import { InvestmentHistoryAtr } from "./investment-history-atr";
+const emptyHistory = { snapshot: () => undefined } as unknown as InvestmentHistoryAtr;
 describe("Reuse the configured market and ATR sources", () => {
   it("preserves provider timestamps, separates QQQ and NDX, and does not invent volume", () => {
     const now = Date.now();
@@ -26,6 +28,7 @@ describe("Reuse the configured market and ATR sources", () => {
     const value = new InvestmentMarket(
       prices as unknown as PriceAnalysisService,
       atr as unknown as AtrService,
+      emptyHistory,
     ).snapshot();
     expect(value).toMatchObject({
       price: 100,
@@ -51,6 +54,7 @@ describe("Reuse the configured market and ATR sources", () => {
       new InvestmentMarket(
         prices as unknown as PriceAnalysisService,
         atr as unknown as AtrService,
+        emptyHistory,
       ).snapshot(),
     ).toMatchObject({
       price: null,

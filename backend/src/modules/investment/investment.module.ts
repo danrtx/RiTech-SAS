@@ -5,6 +5,7 @@ import { AtrModule } from "../atr/atr.module";
 import { InvestmentConfig } from "./investment.config";
 import { InvestmentStore } from "./investment.store";
 import { InvestmentMarket } from "./investment.market";
+import { InvestmentHistoryAtr } from "./investment-history-atr";
 import { GeminiClient } from "./gemini.client";
 import { InvestmentService } from "./investment.service";
 import { InvestmentController, InvestmentGuard } from "./investment.controller";
@@ -15,6 +16,7 @@ import { InvestmentController, InvestmentGuard } from "./investment.controller";
     InvestmentStore,
     InvestmentGuard,
     InvestmentMarket,
+    InvestmentHistoryAtr,
     GeminiClient,
     InvestmentService,
   ],
