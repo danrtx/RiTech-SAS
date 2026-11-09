@@ -44,6 +44,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Keystore y credenciales de firma
+/android/key.properties
+/android/app/keystore/
+
 # Configuración Firebase por ambiente: se entrega fuera del repositorio (ver docs/runbook.md).
 /android/app/google-services.json
 /ios/Runner/GoogleService-Info.plist
