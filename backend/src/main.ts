@@ -1,11 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { serverTls } from './config/server-tls';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  await ConfigModule.envVariablesLoaded;
+  const httpsOptions = serverTls((key) => process.env[key]);
+  const app = await NestFactory.create(AppModule, { httpsOptions });
   app.enableShutdownHooks(['SIGINT', 'SIGTERM']);
 
   const configService = app.get(ConfigService);
@@ -28,7 +31,7 @@ async function bootstrap() {
   });
 
   await app.listen(port);
-  logger.log(`RiTech Backend Modular Monolith running on http://localhost:${port}`);
+  logger.log(`RiTech Backend Modular Monolith running on ${httpsOptions ? 'https' : 'http'}://localhost:${port}`);
   logger.log(`Telemetry WebSockets listening via Socket.io namespace /telemetry`);
 }
 

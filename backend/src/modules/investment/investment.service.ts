@@ -84,6 +84,7 @@ export class InvestmentService {
             provider: input.market.provider,
             quotedAt: input.market.quotedAt,
             atrAt: input.market.atrAt,
+            atrSource: input.market.atrSource,
           },
           {
             provider: input.context?.source ?? null,

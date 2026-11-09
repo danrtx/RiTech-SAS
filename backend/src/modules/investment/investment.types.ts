@@ -88,6 +88,7 @@ export interface MarketSnapshot {
   atr: number | null;
   atrAt: number | null;
   atrStatus: string;
+  atrSource?: "provider_ohlc" | "live_ticks";
   volatility: "BAJA" | "MEDIA" | "ALTA" | "DESCONOCIDA";
   session: "REGULAR_WINDOW" | "OUTSIDE_REGULAR_WINDOW";
 }

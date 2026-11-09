@@ -10,7 +10,9 @@ const add = (id, severity, status, evidence, remediation) => findings.push({ id,
 
 const main = read('backend/src/main.ts');
 add('TLS-INBOUND', 'HIGH', /httpsOptions/.test(main) ? 'REVIEW' : 'FAIL',
-  'backend/src/main.ts: NestFactory.create(AppModule); HTTP listener. No repository evidence of a TLS termination proxy.',
+  /httpsOptions/.test(main)
+    ? 'backend/src/main.ts configures HTTPS using serverTls. Verify TLS 1.3, certificate trust and plaintext refusal on the deployed HTTP/Socket.IO endpoint.'
+    : 'backend/src/main.ts: HTTP listener. No repository evidence of a TLS termination proxy.',
   'Configure a trusted TLS 1.3 endpoint for HTTP and Socket.IO, reject plaintext externally, verify certificate chain, hostname, expiry and TLS 1.2 refusal.');
 const redis = read('backend/src/modules/redis-cache/redis-cache.service.ts');
 const db = read('backend/src/modules/database/database.module.ts');
