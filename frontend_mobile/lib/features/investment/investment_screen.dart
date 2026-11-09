@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'investment_api.dart';
+import 'simulation_account_form.dart';
 
 class InvestmentScreen extends StatefulWidget {
   const InvestmentScreen({super.key, this.api});
@@ -16,6 +18,8 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
   final detailId = TextEditingController();
   bool busy = false;
   bool afterClose = false;
+  bool simulateAccount = false;
+  final simulationForm = GlobalKey<SimulationAccountFormState>();
   String? error;
   String? answer;
   String? human;
@@ -67,14 +71,22 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
           error = 'La cantidad debe ser un entero positivo hasta 1000000.';
           return;
         }
-        final selection = '$afterClose:${quantity.text}';
+        final simulation =
+            simulateAccount ? simulationForm.currentState?.read() : null;
+        if (simulateAccount && simulation == null) {
+          error = 'Revisa los valores de la cuenta simulada.';
+          return;
+        }
+        final selection =
+            '$afterClose:${quantity.text}:${jsonEncode(simulation)}';
         if (createQuantity != selection) {
           createKey = null;
           createQuantity = selection;
         }
         createKey ??= requestId();
         final value = await api.recommend(amount, createKey!,
-            mode: afterClose ? 'AFTER_CLOSE' : 'INTRADAY');
+            mode: afterClose ? 'AFTER_CLOSE' : 'INTRADAY',
+            simulation: simulation);
         if (!mounted) return;
         result = value;
         detailId.text = value['id'] as String;
@@ -198,6 +210,19 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Evaluar con una cuenta simulada'),
+                    subtitle: const Text(
+                        'Saldo, posiciones y límites ficticios. Nunca ejecuta operaciones.'),
+                    value: simulateAccount,
+                    onChanged: busy
+                        ? null
+                        : (value) =>
+                            setState(() => simulateAccount = value ?? false),
+                  ),
+                  if (simulateAccount)
+                    SimulationAccountForm(key: simulationForm, enabled: !busy),
                   FilledButton(
                       onPressed: busy ? null : create,
                       child: const Text('Solicitar recomendación')),
@@ -251,17 +276,19 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                    r['status'] == 'ANALISIS_AL_CIERRE'
-                                        ? 'Análisis fuera de horario · QQQ'
-                                        : r['status'] == 'NO_DISPONIBLE'
-                                            ? 'Servicio no disponible'
-                                            : r['status'] ==
-                                                    'ANALISIS_INFORMATIVO'
-                                                ? 'Análisis informativo · QQQ'
+                                    r['accountMode'] == 'SIMULATED'
+                                        ? 'Cuenta simulada · ${r['simulationDecision']}'
+                                        : r['status'] == 'ANALISIS_AL_CIERRE'
+                                            ? 'Análisis fuera de horario · QQQ'
+                                            : r['status'] == 'NO_DISPONIBLE'
+                                                ? 'Servicio no disponible'
                                                 : r['status'] ==
-                                                        'DATOS_INSUFICIENTES'
-                                                    ? 'Datos insuficientes · ABSTENERSE'
-                                                    : '${r['decision']}',
+                                                        'ANALISIS_INFORMATIVO'
+                                                    ? 'Análisis informativo · QQQ'
+                                                    : r['status'] ==
+                                                            'DATOS_INSUFICIENTES'
+                                                        ? 'Datos insuficientes · ABSTENERSE'
+                                                        : '${r['decision']}',
                                     style: const TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold)),
@@ -269,6 +296,40 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                                   const Text(
                                       'Recomendación vencida o sin vigencia operativa. Solicita una nueva evaluación.',
                                       style: TextStyle(color: Colors.orange)),
+                                if (r['accountMode'] == 'SIMULATED') ...[
+                                  text('Resultado para la cuenta simulada',
+                                      r['simulationDecision']),
+                                  const Text(
+                                      'Solo un escenario ficticio: no modifica saldo ni participaciones, no conecta un broker y no envía órdenes.'),
+                                  if (r['analysisMode'] == 'AFTER_CLOSE')
+                                    const Text(
+                                        'Validación al precio histórico de la sesión indicada; no es una señal para operar ahora.'),
+                                  text(
+                                      'Validación de los límites',
+                                      r['simulationValidation']
+                                          ?['explanation']),
+                                  text(
+                                      'Saldo ficticio disponible',
+                                      number(r['simulationValidation']?['cash'],
+                                          suffix: ' USD')),
+                                  text(
+                                      'Participaciones ficticias disponibles',
+                                      r['simulationValidation']
+                                          ?['positionQuantity']),
+                                  text(
+                                      'Costo estimado de compra con margen del 0,1 %',
+                                      number(
+                                          r['simulationValidation']
+                                              ?['estimatedBuyCost'],
+                                          suffix: ' USD')),
+                                  for (final candidate
+                                      in (r['simulationValidation']
+                                              ?['candidates'] as List? ??
+                                          []))
+                                    text(
+                                        '${candidate['decision']} · ${candidate['allowed'] == true ? 'cumple límites' : 'bloqueado'}',
+                                        candidate['explanation']),
+                                ],
                                 const SizedBox(height: 12),
                                 if (r['analysisMode'] ==
                                     'CLOSED_BARS_INFORMATIONAL_ONLY') ...[

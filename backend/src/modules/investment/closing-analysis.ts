@@ -13,7 +13,7 @@ export const CLOSING_QUESTIONS_MS = 4 * 3600000;
 export function closingQuality(input: EvaluationInput, now: number): string[] {
   const m = input.market;
   const reasons = quality(
-    input,
+    { ...input, context: null }, // Closing quality validates market evidence, not today's account.
     {
       quoteAge: CLOSING_HISTORY_MAX_AGE_MS,
       atrAge: CLOSING_HISTORY_MAX_AGE_MS,

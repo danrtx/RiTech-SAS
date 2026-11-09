@@ -10,11 +10,13 @@ class FakeInvestmentApi extends InvestmentApi {
   int requests = 0;
   String? decision;
   String? requestedMode;
+  Map<String, dynamic>? requestedSimulation;
   @override
   Future<Map<String, dynamic>> recommend(int quantity, String key,
-      {String mode = 'INTRADAY'}) async {
+      {String mode = 'INTRADAY', Map<String, dynamic>? simulation}) async {
     requests++;
     requestedMode = mode;
+    requestedSimulation = simulation;
     return {
       'id': 'test-id',
       'status': status,
@@ -34,6 +36,24 @@ class FakeInvestmentApi extends InvestmentApi {
       },
       'indicators': {'price': 100, 'atr': 0.5},
       'uncertainty': 'ALTA',
+      if (simulation != null) ...{
+        'accountMode': 'SIMULATED',
+        'simulationDecision': 'COMPRAR',
+        'simulationValidation': {
+          'passed': true,
+          'explanation': 'Cumple el escenario ficticio.',
+          'cash': simulation['cash'],
+          'positionQuantity': 0,
+          'estimatedBuyCost': 100.1,
+          'candidates': [
+            {
+              'decision': 'COMPRAR',
+              'allowed': true,
+              'explanation': 'Cumple límites.'
+            }
+          ]
+        },
+      },
       if (mode == 'AFTER_CLOSE') ...{
         'status': 'ANALISIS_AL_CIERRE',
         'analysisMode': 'AFTER_CLOSE',
@@ -60,6 +80,34 @@ class FakeInvestmentApi extends InvestmentApi {
 }
 
 void main() {
+  testWidgets(
+      'submits fictional account and labels recommendation without an order',
+      (tester) async {
+    final api = FakeInvestmentApi();
+    await tester.pumpWidget(MaterialApp(home: InvestmentScreen(api: api)));
+    await tester.scrollUntilVisible(
+        find.text('Evaluar con una cuenta simulada'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Evaluar con una cuenta simulada'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('simulation-stopLoss')), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.enterText(
+        find.byKey(const ValueKey('simulation-stopLoss')), '95');
+    await tester.scrollUntilVisible(find.text('Solicitar recomendación'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Solicitar recomendación'));
+    await tester.pumpAndSettle();
+    expect(api.requestedSimulation, containsPair('kind', 'SIMULATED'));
+    expect(api.requestedSimulation, containsPair('stopLoss', 95.0));
+    await tester.scrollUntilVisible(find.text('Cuenta simulada · COMPRAR'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('Cuenta simulada · COMPRAR'), findsOneWidget);
+    expect(find.textContaining('no conecta un broker'), findsOneWidget);
+    expect(api.decision, isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('sends explicit closing mode and displays the historical session',
       (tester) async {
     final api = FakeInvestmentApi();

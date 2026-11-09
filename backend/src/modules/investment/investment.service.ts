@@ -3,6 +3,8 @@ import { InvestmentStore } from "./investment.store";
 import { InvestmentConfig } from "./investment.config";
 import { InvestmentMarket } from "./investment.market";
 import { GeminiClient, GeminiFailure } from "./gemini.client";
+import { simulationContext, simulatedResult } from "./investment.simulation";
+import { SimulationAccountInput } from "./investment.types";
 import {
   closingQuality,
   CLOSING_HISTORY_MAX_AGE_MS,
@@ -49,6 +51,7 @@ export class InvestmentService {
       symbol: "QQQ";
       quantity: number;
       mode?: "INTRADAY" | "AFTER_CLOSE";
+      simulation?: SimulationAccountInput;
     },
     signal?: AbortSignal,
   ) {
@@ -56,11 +59,20 @@ export class InvestmentService {
     if (claim.cached) return claim.result;
     const now = Date.now();
     let input: EvaluationInput = {
-      context: null,
-      contextVersion: null,
+      context: request.simulation
+        ? simulationContext(request.simulation, now)
+        : null,
+      contextVersion: request.simulation ? 1 : null,
       market: this.market.snapshot(),
       quantity: request.quantity,
     };
+    const finish = (value: Record<string, unknown>) =>
+      this.store.finish(
+        scope,
+        claim.id,
+        request.simulation ? simulatedResult(value, input) : value,
+        input,
+      );
     let result: Record<string, unknown> = {
       id: claim.id,
       correlationId: claim.id,
@@ -104,7 +116,7 @@ export class InvestmentService {
         if (!closing) {
           result.justification =
             "No hay un cierre regular completo disponible. Intenta después del cierre o revisa la fuente histórica.";
-          return this.store.finish(scope, claim.id, result, input);
+          return finish(result);
         }
         input = { ...input, market: closing };
         const reasons = closingQuality(input, Date.now());
@@ -128,7 +140,7 @@ export class InvestmentService {
         if (reasons.length) {
           result.justification =
             "No se pudo validar el cierre: faltan velas consecutivas, ATR consistente o el histórico supera siete días.";
-          return this.store.finish(scope, claim.id, result, input);
+          return finish(result);
         }
         await this.quota(scope);
         const response = await this.gemini.generate(
@@ -166,9 +178,10 @@ export class InvestmentService {
             ...analysis.limitations,
           ],
         };
-        return this.store.finish(scope, claim.id, result, input);
+        return finish(result);
       }
-      input = { ...input, ...(await this.store.context()) };
+      if (!request.simulation)
+        input = { ...input, ...(await this.store.context()) };
       const reasons = quality(input, this.config, Date.now()).filter(
         (reason) => reason !== "CONTEXTO_FINANCIERO_AUSENTE",
       );
@@ -268,7 +281,7 @@ export class InvestmentService {
               "Análisis informativo de velas cerradas de un minuto; no habilita decisiones operativas ni sustituye el control de cotización de 2 segundos.",
             ],
           };
-          return this.store.finish(scope, claim.id, result, input);
+          return finish(result);
         }
       }
       if (reasons.length)
@@ -303,7 +316,7 @@ export class InvestmentService {
           const analysis: Analysis = ModelAnalysis.parse(response.data);
           const current = {
             ...input,
-            ...(await this.store.context()),
+            ...(request.simulation ? {} : await this.store.context()),
             market: this.market.snapshot(),
           };
           const reasons = [
@@ -335,6 +348,7 @@ export class InvestmentService {
             generatedAt: Date.now(),
             validUntil: expiry,
             decision: reasons.length ? "ABSTENERSE" : analysis.decision,
+            modelDecision: analysis.decision,
             justification: reasons.length
               ? "La propuesta fue descartada por los controles independientes: " +
                 explainReasons(reasons)
@@ -362,7 +376,7 @@ export class InvestmentService {
         riskValidation: { passed: false, reasons: ["FALLO_TECNICO"] },
       };
     }
-    return this.store.finish(scope, claim.id, result, input);
+    return finish(result);
   }
   async get(scope: string, id: string) {
     const row = await this.store.owned(scope, id);

@@ -50,9 +50,14 @@ class InvestmentApi {
   }
 
   Future<Map<String, dynamic>> recommend(int quantity, String key,
-          {String mode = 'INTRADAY'}) =>
+          {String mode = 'INTRADAY', Map<String, dynamic>? simulation}) =>
       _call('recommendations',
-          body: {'symbol': 'QQQ', 'quantity': quantity, 'mode': mode},
+          body: {
+            'symbol': 'QQQ',
+            'quantity': quantity,
+            'mode': mode,
+            if (simulation != null) 'simulation': simulation
+          },
           key: key);
   Future<Map<String, dynamic>> detail(String id) =>
       _call('recommendations/$id', method: 'GET');

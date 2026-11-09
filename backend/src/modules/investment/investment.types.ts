@@ -44,11 +44,39 @@ export const Context = z
   })
   .strict();
 export type FinancialContext = z.infer<typeof Context>;
+// Only hypothetical balances. Callers cannot claim broker verification or enable orders.
+export const SimulationAccount = Context.pick({
+  cash: true,
+  otherExposure: true,
+  position: true,
+  maxExposure: true,
+  maxInstrumentExposure: true,
+  maxTradeRisk: true,
+  stopLoss: true,
+  maxAtrPercent: true,
+})
+  .extend({ kind: z.literal("SIMULATED") })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.position.quantity > 0 && value.position.averageEntry <= 0)
+      ctx.addIssue({
+        code: "custom",
+        message: "La posición requiere precio promedio positivo",
+      });
+    if (value.maxInstrumentExposure > value.maxExposure)
+      ctx.addIssue({
+        code: "custom",
+        message: "El límite QQQ no puede superar el límite total",
+      });
+  });
+export type SimulationAccountInput = z.infer<typeof SimulationAccount>;
+
 export const CreateRecommendation = z
   .object({
     symbol: z.literal("QQQ"),
     quantity: z.number().int().positive().max(1000000),
     mode: z.enum(["INTRADAY", "AFTER_CLOSE"]).optional(),
+    simulation: SimulationAccount.optional(),
   })
   .strict();
 export const Question = z
