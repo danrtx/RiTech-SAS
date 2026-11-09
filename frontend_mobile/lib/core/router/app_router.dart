@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/notifications/domain/hedging_alert.dart';
 import '../../features/notifications/presentation/order_detail_screen.dart';
 import '../../features/telemetry/presentation/screens/telemetry_dashboard_screen.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/alerts/presentation/screens/alerts_screen.dart';
+import '../../features/monitoring/presentation/screens/monitoring_dashboard_screen.dart';
 
 import '../../features/investment/investment_screen.dart';
 
@@ -28,11 +31,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           body: const Center(child: Text('Hedging Module Panel')),
         ),
       ),
-      // Destino del deep link de las alertas push de hedging.
+      GoRoute(
+        path: '/alerts',
+        name: 'alerts',
+        builder: (context, state) => const AlertsScreen(),
+      ),
+      GoRoute(
+        path: '/settings',
+        name: 'settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/monitoring',
+        name: 'monitoring',
+        builder: (context, state) => const MonitoringDashboardScreen(),
+      ),
       GoRoute(
         path: '/orders/:correlationId',
         name: 'order-detail',
-        // Un id con formato inválido (enlace manipulado) vuelve al tablero en vez de abrir la pantalla.
         redirect: (context, state) => HedgingAlert.isValidCorrelationId(
                 state.pathParameters['correlationId'] ?? '')
             ? null

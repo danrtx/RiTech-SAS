@@ -80,11 +80,13 @@ class _DashboardState extends ConsumerState<TelemetryDashboardScreen> {
                     child: const Icon(Icons.multiline_chart,
                         color: Color(0xFF0B111A), size: 23)),
                 const SizedBox(width: 10),
-                const Text('RiTech',
-                    style: TextStyle(
-                        fontSize: 21,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.7)),
+                Flexible(
+                    child: Text('RiTech',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 21,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.7))),
                 if (MediaQuery.sizeOf(context).width > 700) ...[
                   const SizedBox(width: 40),
                   const Text('Mercados',
@@ -94,7 +96,7 @@ class _DashboardState extends ConsumerState<TelemetryDashboardScreen> {
                   const Text('Monitor de inversión',
                       style: TextStyle(fontSize: 13, color: chartMuted)),
                 ],
-                const Spacer(),
+                const SizedBox(width: 8),
                 _badge(connected ? 'Conectado' : 'Sin conexión',
                     connected ? chartUp : chartDown),
               ])),
