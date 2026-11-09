@@ -117,6 +117,9 @@ export class MarketDataWsClient implements OnModuleDestroy {
         endpoint.searchParams.set('apikey', key);
       }
       const socket = this.socketFactory(endpoint.toString(), {
+        ...(endpoint.protocol === 'wss:' ? {
+          minVersion: 'TLSv1.3', rejectUnauthorized: true,
+        } : {}),
         followRedirects: false,
         perMessageDeflate: false,
         maxPayload: 1024 * 1024,

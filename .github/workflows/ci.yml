@@ -54,6 +54,7 @@ jobs:
         run: npm test -- --ci --runInBand --coverage --json --outputFile=coverage/jest-results.json
         env:
           RUN_CHART_DB_TESTS: '1'
+          RUN_INVESTMENT_DB_TESTS: '1'
           DB_HOST: 127.0.0.1
           DB_PORT: '5432'
           DB_USER: ritech

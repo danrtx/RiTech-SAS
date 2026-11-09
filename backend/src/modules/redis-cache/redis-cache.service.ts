@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
+import { datastoreTls } from '../../config/datastore-tls';
 import { AtrConfig } from "../atr/atr.config";
 import {
   AppendResult,
@@ -39,12 +40,11 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
     const host = this.configService.get<string>("REDIS_HOST", "localhost");
     const port = Number(this.configService.get<number>("REDIS_PORT", 6379));
     const password = this.configService.get<string>("REDIS_PASS");
-    const isProd = this.configService.get<string>("NODE_ENV") === "production";
     this.client = new Redis({
       host,
       port,
       password: password || undefined,
-      tls: isProd ? { rejectUnauthorized: false } : undefined,
+      tls: datastoreTls(key => this.configService.get<string>(key), 'REDIS'),
       commandTimeout: this.config.options.readTimeoutMs,
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
